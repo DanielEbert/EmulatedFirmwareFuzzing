@@ -7,18 +7,18 @@ on:
 jobs:
   test:
     name: Test
-		runs-on: ubuntu-20.04
+    runs-on: ubuntu-20.04
     defaults:
       run:
         working-directory: simavr
-		
-		steps:
-		- name: Checkout Code
-			uses: actions/checkout@v2
-		- name: Install Dependencies
-			run: apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y gcc make gcc-avr avr-libc libelf-dev freeglut3 freeglut3-dev libglfw3-dev libgl1-mesa-dev libglu1-mesa-dev pkg-config libncurses-dev
-		- name: Build
-			run: make all
-		- name: Test
-			run: make -C tests run_tests
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v2
+    - name: Install Dependencies
+      run: apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y gcc make gcc-avr avr-libc libelf-dev freeglut3 freeglut3-dev libglfw3-dev libgl1-mesa-dev libglu1-mesa-dev pkg-config libncurses-dev
+    - name: Build
+      run: make all
+    - name: Test
+      run: make -C tests run_tests
 

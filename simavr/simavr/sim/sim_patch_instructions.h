@@ -1,6 +1,7 @@
 #pragma once
 
 #include "sim_avr_types.h"
+#include "sim_avr.h"
 #include "sim_uthash.h"
 #include "sim_utlist.h"
 
@@ -25,8 +26,8 @@ typedef struct patched_instruction {
 struct patched_instruction *patched_instructions;
 
 void initialize_patch_instructions(struct avr_t *);
-int patch_instruction(int vaddr, void* function_pointer);
-patched_instruction* get_or_create_patched_instruction(int key);
+int patch_instruction(avr_flashaddr_t vaddr, void* function_pointer);
+patched_instruction* get_or_create_patched_instruction(avr_flashaddr_t key);
 function_patch* create_function_patch(void* function);
 void test_patch_function();
 

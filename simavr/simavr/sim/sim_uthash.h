@@ -495,8 +495,12 @@ do {                                                                            
 } while (0)
 #define HASH_FIND_INT(head,findint,out)                                          \
     HASH_FIND(hh,head,findint,sizeof(int),out)
+#define HASH_FIND_UINT32(head,findint,out)                                          \
+    HASH_FIND(hh,head,findint,sizeof(uint32_t),out)
 #define HASH_ADD_INT(head,intfield,add)                                          \
     HASH_ADD(hh,head,intfield,sizeof(int),add)
+#define HASH_ADD_UINT32(head,intfield,add)                                          \
+    HASH_ADD(hh,head,intfield,sizeof(uint32_t),add)
 #define HASH_REPLACE_INT(head,intfield,add,replaced)                             \
     HASH_REPLACE(hh,head,intfield,sizeof(int),add,replaced)
 #define HASH_FIND_PTR(head,findptr,out)                                          \

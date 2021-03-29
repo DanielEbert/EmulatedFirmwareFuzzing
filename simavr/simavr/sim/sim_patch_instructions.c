@@ -3,13 +3,12 @@
 #include "sim_avr.h"
 #include <stdio.h>
 
-// TODOE do i even need :avr: here?
 void initialize_patch_instructions(avr_t *avr) {
   patched_instructions = NULL;
   patch_instruction(0x87c, test_patch_function);
 }
 
-int patch_instruction(int vaddr, void* function_pointer) {
+int patch_instruction(avr_flashaddr_t vaddr, void* function_pointer) {
   patched_instruction *p = get_or_create_patched_instruction(vaddr);
 
   DL_APPEND(p->function_patches, create_function_patch(function_pointer));
@@ -17,9 +16,9 @@ int patch_instruction(int vaddr, void* function_pointer) {
   return 0;
 }
 
-patched_instruction* get_or_create_patched_instruction(int key) {
+patched_instruction* get_or_create_patched_instruction(avr_flashaddr_t key) {
   patched_instruction *entry;
-  HASH_FIND_INT(patched_instructions, &key, entry);
+  HASH_FIND_UINT32(patched_instructions, &key, entry);
 
   // Create empty list as value at :key: if no value exists yet
 	if (entry == NULL) {
@@ -28,7 +27,7 @@ patched_instruction* get_or_create_patched_instruction(int key) {
 		entry = malloc(sizeof(patched_instruction));
 		entry->vaddr = key;
 		entry->function_patches = patch;
-		HASH_ADD_INT(patched_instructions, vaddr, entry);
+		HASH_ADD_UINT32(patched_instructions, vaddr, entry);
 	}
 
   return entry;

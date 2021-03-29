@@ -1,47 +1,47 @@
 
-#include "sim_hook_function.h"
+#include "sim_patch_instructions.h"
 #include "sim_avr.h"
 #include <stdio.h>
 
 // TODOE do i even need :avr: here?
-void initialize_function_hooks(avr_t * avr) {
-  vaddr_hooks_table = NULL;
-  add_function_hook(0x87c, test_hook_function);
+void initialize_patch_instructions(avr_t *avr) {
+  patched_instructions = NULL;
+  patch_instruction(0x87c, test_patch_function);
 }
 
-int add_function_hook(int vaddr, void* function_pointer) {
-  struct vaddr_hook *hook_table_value_at_vaddr = get_or_create_hooks_table_value(vaddr);
+int patch_instruction(int vaddr, void* function_pointer) {
+  patched_instruction *p = get_or_create_patched_instruction(vaddr);
 
-  DL_APPEND(hook_table_value_at_vaddr->function_hooks, create_function_hook(function_pointer));
+  DL_APPEND(p->function_patches, create_function_patch(function_pointer));
 
   return 0;
 }
 
-struct vaddr_hook* get_or_create_hooks_table_value(int key) {
-  struct vaddr_hook *entry;
-  HASH_FIND_INT(vaddr_hooks_table, &key, entry);
+patched_instruction* get_or_create_patched_instruction(int key) {
+  patched_instruction *entry;
+  HASH_FIND_INT(patched_instructions, &key, entry);
 
   // Create empty list as value at :key: if no value exists yet
 	if (entry == NULL) {
 		// Set empty list as value for key target_vaddr in vaddr_hooks_table
-		struct function_hook *function_hook_list = NULL;
-		entry = malloc(sizeof(struct vaddr_hook));
+		function_patch *patch = NULL;
+		entry = malloc(sizeof(patched_instruction));
 		entry->vaddr = key;
-		entry->function_hooks = function_hook_list;
-		HASH_ADD_INT(vaddr_hooks_table, vaddr, entry);
+		entry->function_patches = patch;
+		HASH_ADD_INT(patched_instructions, vaddr, entry);
 	}
 
   return entry;
 }
 
-struct function_hook* create_function_hook(void* function) {
-  struct function_hook *entry = malloc(sizeof(struct function_hook));
-  entry->hook_function_pointer = function;
+function_patch* create_function_patch(void* function) {
+  function_patch *entry = malloc(sizeof(function_patch));
+  entry->function_pointer = function;
   return entry;
 }
 
-void test_hook_function() {
-	printf("Hello from test_hook_function\n");
+void test_patch_function() {
+	printf("Hello from test_patch_function\n");
 }
 //struct vaddr_hook *hook_at_vaddr; 
 //	int target_vaddr = 0x87c;

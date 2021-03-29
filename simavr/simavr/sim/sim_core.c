@@ -28,7 +28,7 @@
 #include "sim_gdb.h"
 #include "avr_flash.h"
 #include "avr_watchdog.h"
-#include "sim_hook_function.h"
+#include "sim_patch_instructions.h"
 #include "sim_uthash.h"
 
 // SREG bit names
@@ -662,12 +662,12 @@ run_one_again:
 	//strcpy(s->name, "Hello");
 	//HASH_ADD_INT(function_hooks, vaddr, s);
 
-	struct vaddr_hook *hook_at_vaddr;
-	HASH_FIND_INT(vaddr_hooks_table, &(avr->pc), hook_at_vaddr);
-	if (hook_at_vaddr != NULL) {
-		struct function_hook *t;
-		DL_FOREACH(hook_at_vaddr->function_hooks, t) {
-			void (*s)() = t->hook_function_pointer;
+	patched_instruction *patch;
+	HASH_FIND_INT(patched_instructions, &(avr->pc), patch);
+	if (patch != NULL) {
+		function_patch *t;
+		DL_FOREACH(patch->function_patches, t) {
+			void (*s)() = t->function_pointer;
 			(*s)();
 		}
 	}

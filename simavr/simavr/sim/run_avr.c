@@ -30,7 +30,7 @@
 #include "sim_gdb.h"
 #include "sim_hex.h"
 #include "sim_vcd_file.h"
-#include "sim_hook_function.h"
+#include "sim_patch_instructions.h"
 
 #include "sim_core_decl.h"
 
@@ -281,7 +281,7 @@ main(
 	signal(SIGINT, sig_int);
 	signal(SIGTERM, sig_int);
 
-	initialize_function_hooks(avr);
+	initialize_patch_instructions(avr);
 
 	for (;;) {
 		int state = avr_run(avr);

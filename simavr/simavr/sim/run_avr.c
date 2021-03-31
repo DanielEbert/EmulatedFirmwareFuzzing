@@ -30,7 +30,8 @@
 #include "sim_gdb.h"
 #include "sim_hex.h"
 #include "sim_vcd_file.h"
-#include "sim_patch_instructions.h"
+#include "fuzz_patch_instructions.h"
+#include "fuzz_coverage.h"
 
 #include "sim_core_decl.h"
 
@@ -281,7 +282,9 @@ main(
 	signal(SIGINT, sig_int);
 	signal(SIGTERM, sig_int);
 
+	initialize_server_notify(avr);
 	initialize_patch_instructions(avr);
+	initialize_coverage(avr);
 
 	for (;;) {
 		int state = avr_run(avr);

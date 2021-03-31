@@ -15,7 +15,7 @@ typedef struct function_patch {
 } function_patch;
 
 typedef struct patched_instruction { 
-  int vaddr;            /* we'll use this field as the key */
+  avr_flashaddr_t vaddr;            /* we'll use this field as the key */
 	struct function_patch* function_patches;    
   UT_hash_handle hh; /* makes this structure hashable */
 } patched_instruction;

@@ -45,6 +45,7 @@ CFLAGS		+= -O2 -Wall -Wextra -Wno-unused-parameter \
 CFLAGS		+= -g
 CORE_CFLAGS	= -DAVR_CORE=1
 
+
 ifeq (${shell uname}, Darwin)
  # gcc 4.2 from MacOS is really not up to scratch anymore
  CC			= clang
@@ -93,6 +94,7 @@ AVR         := ${AVR_ROOT}/bin/avr-
 IPATH       += ${PREFIX}/include
 CFLAGS      += -I${PREFIX}/include
 LDFLAGS		+= -L/lib -L/local/lib
+
 CFLAGS 		+= -DNO_COLOR
 else
 CFLAGS 		+= -fPIC
@@ -115,6 +117,9 @@ LIBDIR		:= ${shell pwd}/${SIMAVR}/${OBJ}
 LDFLAGS 	+= -L${LIBDIR} -lsimavr -lm
 
 LDFLAGS 	+= -lelf
+
+# link Collections-C Library
+LDFLAGS += -lcollectc
 
 ifeq (${WIN}, Msys)
 LDFLAGS      += -lws2_32

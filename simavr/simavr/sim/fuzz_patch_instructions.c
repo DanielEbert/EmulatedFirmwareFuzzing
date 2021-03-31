@@ -1,5 +1,5 @@
 
-#include "sim_patch_instructions.h"
+#include "fuzz_patch_instructions.h"
 #include "sim_avr.h"
 #include <stdio.h>
 

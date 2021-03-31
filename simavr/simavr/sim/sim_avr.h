@@ -40,6 +40,8 @@ extern "C" {
 #include "sim_interrupts.h"
 #include "sim_cmds.h"
 #include "sim_cycle_timers.h"
+#include <collectc/cc_hashset.h>
+#include "fuzz_server_notify.h"
 
 typedef uint32_t avr_flashaddr_t;
 
@@ -346,6 +348,14 @@ typedef struct avr_t {
 		uint32_t size;
 		uint32_t len;
 	} io_console_buffer;
+
+	// the rest is for fuzzing purposes
+
+	// reached edge coverage dictionary. key is struct Edge.
+	// if key-value pair exists: Edge reached
+	Server_Connection *server_connection;
+	CC_HashSet *coverage;
+	int input_has_reached_new_coverage;
 } avr_t;
 
 

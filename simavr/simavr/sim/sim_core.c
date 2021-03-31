@@ -28,8 +28,9 @@
 #include "sim_gdb.h"
 #include "avr_flash.h"
 #include "avr_watchdog.h"
-#include "sim_patch_instructions.h"
+#include "fuzz_patch_instructions.h"
 #include "sim_uthash.h"
+#include "fuzz_coverage.h"
 
 // SREG bit names
 const char * _sreg_bit_name = "cznvshti";
@@ -1089,6 +1090,7 @@ run_one_again:
 					new_pc = z << 1;
 					cycle++;
 					TRACE_JUMP();
+					edge_triggered(avr, avr->pc, new_pc);
 				}	break;
 				case 0x9518: 	// RETI -- Return from Interrupt -- 1001 0101 0001 1000
 					avr_sreg_set(avr, S_I, 1);
@@ -1339,6 +1341,7 @@ run_one_again:
 							new_pc = a << 1;
 							cycle += 2;
 							TRACE_JUMP();
+							edge_triggered(avr, avr->pc, new_pc);
 						}	break;
 						case 0x940e:
 						case 0x940f: {	// CALL -- Long Call to sub, 32 bits -- 1001 010a aaaa 111a
@@ -1352,6 +1355,7 @@ run_one_again:
 							new_pc = a << 1;
 							TRACE_JUMP();
 							STACK_FRAME_PUSH();
+							edge_triggered(avr, avr->pc, new_pc);
 						}	break;
 
 						default: {
@@ -1459,6 +1463,7 @@ run_one_again:
 			new_pc = (new_pc + o) % (avr->flashend+1);
 			cycle++;
 			TRACE_JUMP();
+			edge_triggered(avr, avr->pc, new_pc);
 		}	break;
 
 		case 0xd000: {	// RCALL -- 1101 kkkk kkkk kkkk
@@ -1471,6 +1476,7 @@ run_one_again:
 				TRACE_JUMP();
 				STACK_FRAME_PUSH();
 			}
+			edge_triggered(avr, avr->pc, new_pc);
 		}	break;
 
 		case 0xe000: {	// LDI Rd, K aka SER (LDI r, 0xff) -- 1110 kkkk dddd kkkk

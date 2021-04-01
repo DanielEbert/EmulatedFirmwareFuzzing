@@ -28,6 +28,8 @@ void edge_triggered(avr_t *avr, avr_flashaddr_t from, avr_flashaddr_t to) {
     cc_hashset_add(avr->coverage, edge);
     avr->input_has_reached_new_coverage = 1;
     send_coverage(avr->server_connection, edge);
+  } else {
+    free(edge);
   }
 }
 

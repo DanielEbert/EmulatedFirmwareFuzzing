@@ -651,116 +651,84 @@ run_one_again:
 
 	int skipMainSwitch = 0;
 
-	// interface: hook(vaddr, func) // doesnt requires avr struct - not a call..
-	// but func's args must always be the same. macro for ret?
-
-	// if avr->pc in hook'd fcns. 
-	// here we need to check first if list already exists. if it does, append,
-	// otherwise create new list. also pass pointer to skipMainSwitch
+	// TODOE: maybe return skipMainSwitch here
+	check_run_patch(avr);
 	
 
-	//s->vaddr = hook_vaddr;
-	//strcpy(s->name, "Hello");
-	//HASH_ADD_INT(function_hooks, vaddr, s);
-
-	patched_instruction *patch;
-	HASH_FIND_INT(patched_instructions, &(avr->pc), patch);
-	if (patch != NULL) {
-		function_patch *t;
-		DL_FOREACH(patch->function_patches, t) {
-			void (*s)() = t->function_pointer;
-			(*s)();
-		}
-	}
-	//	// bad: this is entry not exit
-	//	//for (int i = 0; i < 40; i++) printf("%d - %u\n", i, avr->data[i]);
-	//	_avr_set_r(avr, 24, 50);
-	//	//_avr_set_r(avr, 27, 99);
-
-	//	// return from function
-	//	new_pc = _avr_pop_addr(avr);
-	//	cycle += 1 + avr->address_size;
-	//	skipMainSwitch = 1;
-	//}
-
-	//// del entry 
-	//HASH_DEL(function_hooks, s);	
-	//free(s);
-
 	// We can calc the target addr, ret addr, ... here
-	switch (opcode & 0xf000) {
-		case 0x9000: {
-			/* this is an annoying special case, but at least these lines handle all the SREG set/clear opcodes */
-			if ((opcode & 0xff0f) == 0x9408) {
-			} else switch (opcode) {
-				case 0x9409:   // IJMP -- Indirect jump -- 1001 0100 0000 1001
-				case 0x9419:   // EIJMP -- Indirect jump -- 1001 0100 0001 1001   bit 4 is "indirect"
-				case 0x9509:   // ICALL -- Indirect Call to Subroutine -- 1001 0101 0000 1001
-				case 0x9519: { // EICALL -- Indirect Call to Subroutine -- 1001 0101 0001 1001   bit 8 is "push pc"
-					//int e = opcode & 0x10;
-					//int p = opcode & 0x100;
-					//if (e && !avr->eind)
-					//	_avr_invalid_opcode(avr);
-					//uint32_t z = avr->data[R_ZL] | (avr->data[R_ZH] << 8);
-					//if (e)
-					//	z |= avr->data[avr->eind] << 16;
-					//STATE("%si%s Z[%04x]\n", e?"e":"", p?"call":"jmp", z << 1);
-					//if (p)
-					//	cycle += _avr_push_addr(avr, new_pc) - 1;
-					//new_pc = z << 1;
-					//cycle++;
-					//TRACE_JUMP();
-				}	break;
-				default:  {
-					switch (opcode & 0xfe0f) {
-						case 0x940c:
-						case 0x940d: {	// JMP -- Long Call to sub, 32 bits -- 1001 010a aaaa 110a
-							// avr_flashaddr_t a = ((opcode & 0x01f0) >> 3) | (opcode & 1);
-							// uint16_t x = _avr_flash_read16le(avr, new_pc);
-							// a = (a << 16) | x;
-							// STATE("jmp 0x%06x\n", a);
-							// new_pc = a << 1;
-							// cycle += 2;
-							// TRACE_JUMP();
-						}	break;
-						case 0x940e:
-						case 0x940f: {	// CALL -- Long Call to sub, 32 bits -- 1001 010a aaaa 111a
-							// avr_flashaddr_t a = ((opcode & 0x01f0) >> 3) | (opcode & 1);
-							// uint16_t x = _avr_flash_read16le(avr, new_pc);
-							// a = (a << 16) | x;
-							// STATE("call 0x%06x\n", a);
-							// new_pc += 2;
-							// cycle += 1 + _avr_push_addr(avr, new_pc);
-							// printf("-- Call cur_pc %d, next_pc %d, ret_pc %d\n", avr->pc, a << 1, new_pc);
-							// new_pc = a << 1;
-							// TRACE_JUMP();
-							// STACK_FRAME_PUSH();
-						}	break;
-					}
-				}	break;
-			}
-		}	break;
+	//switch (opcode & 0xf000) {
+	//	case 0x9000: {
+	//		/* this is an annoying special case, but at least these lines handle all the SREG set/clear opcodes */
+	//		if ((opcode & 0xff0f) == 0x9408) {
+	//		} else switch (opcode) {
+	//			case 0x9409:   // IJMP -- Indirect jump -- 1001 0100 0000 1001
+	//			case 0x9419:   // EIJMP -- Indirect jump -- 1001 0100 0001 1001   bit 4 is "indirect"
+	//			case 0x9509:   // ICALL -- Indirect Call to Subroutine -- 1001 0101 0000 1001
+	//			case 0x9519: { // EICALL -- Indirect Call to Subroutine -- 1001 0101 0001 1001   bit 8 is "push pc"
+	//				//int e = opcode & 0x10;
+	//				//int p = opcode & 0x100;
+	//				//if (e && !avr->eind)
+	//				//	_avr_invalid_opcode(avr);
+	//				//uint32_t z = avr->data[R_ZL] | (avr->data[R_ZH] << 8);
+	//				//if (e)
+	//				//	z |= avr->data[avr->eind] << 16;
+	//				//STATE("%si%s Z[%04x]\n", e?"e":"", p?"call":"jmp", z << 1);
+	//				//if (p)
+	//				//	cycle += _avr_push_addr(avr, new_pc) - 1;
+	//				//new_pc = z << 1;
+	//				//cycle++;
+	//				//TRACE_JUMP();
+	//			}	break;
+	//			default:  {
+	//				switch (opcode & 0xfe0f) {
+	//					case 0x940c:
+	//					case 0x940d: {	// JMP -- Long Call to sub, 32 bits -- 1001 010a aaaa 110a
+	//						// avr_flashaddr_t a = ((opcode & 0x01f0) >> 3) | (opcode & 1);
+	//						// uint16_t x = _avr_flash_read16le(avr, new_pc);
+	//						// a = (a << 16) | x;
+	//						// STATE("jmp 0x%06x\n", a);
+	//						// new_pc = a << 1;
+	//						// cycle += 2;
+	//						// TRACE_JUMP();
+	//					}	break;
+	//					case 0x940e:
+	//					case 0x940f: {	// CALL -- Long Call to sub, 32 bits -- 1001 010a aaaa 111a
+	//						// avr_flashaddr_t a = ((opcode & 0x01f0) >> 3) | (opcode & 1);
+	//						// uint16_t x = _avr_flash_read16le(avr, new_pc);
+	//						// a = (a << 16) | x;
+	//						// STATE("call 0x%06x\n", a);
+	//						// new_pc += 2;
+	//						// cycle += 1 + _avr_push_addr(avr, new_pc);
+	//						// printf("-- Call cur_pc %d, next_pc %d, ret_pc %d\n", avr->pc, a << 1, new_pc);
+	//						// new_pc = a << 1;
+	//						// TRACE_JUMP();
+	//						// STACK_FRAME_PUSH();
+	//					}	break;
+	//				}
+	//			}	break;
+	//		}
+	//	}	break;
 
-		case 0xc000: {	// RJMP -- 1100 kkkk kkkk kkkk
-			// get_o12(opcode);
-			// STATE("rjmp .%d [%04x]\n", o >> 1, new_pc + o);
-			// new_pc = (new_pc + o) % (avr->flashend+1);
-			// cycle++;
-			// TRACE_JUMP();
-		}	break;
+	//	case 0xc000: {	// RJMP -- 1100 kkkk kkkk kkkk
+	//		// get_o12(opcode);
+	//		// STATE("rjmp .%d [%04x]\n", o >> 1, new_pc + o);
+	//		// new_pc = (new_pc + o) % (avr->flashend+1);
+	//		// cycle++;
+	//		// TRACE_JUMP();
+	//	}	break;
 
-		case 0xd000: {	// RCALL -- 1101 kkkk kkkk kkkk
-			// get_o12(opcode);
-			// STATE("rcall .%d [%04x]\n", o >> 1, new_pc + o);
-			// cycle += _avr_push_addr(avr, new_pc);
-			// new_pc = (new_pc + o) % (avr->flashend+1);
-			// // 'rcall .1' is used as a cheap "push 16 bits of room on the stack"
-			// if (o != 0) {
-			// 	TRACE_JUMP();
-			// 	STACK_FRAME_PUSH();
-			// }
-		}	break;
-	}
+	//	case 0xd000: {	// RCALL -- 1101 kkkk kkkk kkkk
+	//		// get_o12(opcode);
+	//		// STATE("rcall .%d [%04x]\n", o >> 1, new_pc + o);
+	//		// cycle += _avr_push_addr(avr, new_pc);
+	//		// new_pc = (new_pc + o) % (avr->flashend+1);
+	//		// // 'rcall .1' is used as a cheap "push 16 bits of room on the stack"
+	//		// if (o != 0) {
+	//		// 	TRACE_JUMP();
+	//		// 	STACK_FRAME_PUSH();
+	//		// }
+	//	}	break;
+	//}
 
 	if (skipMainSwitch == 0) {
 	switch (opcode & 0xf000) {
@@ -1552,6 +1520,10 @@ run_one_again:
 
 	}
 	}
+	// TODOE if collect_all_coverage
+	//edge_triggered(avr, avr->pc, new_pc);
+
+
 	avr->cycle += cycle;
 
 	if ((avr->state == cpu_Running) &&

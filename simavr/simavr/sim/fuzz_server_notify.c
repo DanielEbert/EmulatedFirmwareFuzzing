@@ -4,6 +4,7 @@
 #include <arpa/inet.h>
 #include <stdio.h>
 #include "fuzz_coverage.h"
+#include <errno.h>
 
 /******************************
 
@@ -71,8 +72,14 @@ int send_raw(Server_Connection *server_connection, void *buf, uint32_t buf_len) 
   const char *p = buf;
 
   while (buf_len > 0) {
-    n = send(server_connection->s, p, buf_len, 0);
-    if (n <= 0) return -2;
+    n = send(server_connection->s, p, buf_len, MSG_NOSIGNAL);
+    if (n <= 0) {
+      if (errno == EPIPE) {
+        printf("Lost the connection to the server. Continuing the emulation.\n");
+        server_connection->connection_established = 0;
+      }
+      return -2;
+    }
     p += n;
     buf_len -= n;
   }

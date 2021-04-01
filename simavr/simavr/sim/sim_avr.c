@@ -360,7 +360,6 @@ avr_callback_run_raw(
 		avr_t * avr)
 {
 	avr_flashaddr_t new_pc = avr->pc;
-
 	if (avr->state == cpu_Running) {
 		new_pc = avr_run_one(avr);
 #if CONFIG_SIMAVR_TRACE
@@ -384,7 +383,8 @@ avr_callback_run_raw(
 		/*
 		 * try to sleep for as long as we can (?)
 		 */
-		avr->sleep(avr, sleep);
+		// TODOE
+		//avr->sleep(avr, sleep);
 		avr->cycle += 1 + sleep;
 	}
 	// Interrupt servicing might change the PC too, during 'sleep'

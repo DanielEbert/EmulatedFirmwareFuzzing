@@ -10,7 +10,8 @@ extern "C" {
 #endif
 
 typedef struct function_patch {
-	void* function_pointer;
+	void *function_pointer;
+	void *arg;
 	struct function_patch *next, *prev;
 } function_patch;
 
@@ -26,9 +27,10 @@ typedef struct patched_instruction {
 struct patched_instruction *patched_instructions;
 
 void initialize_patch_instructions(struct avr_t *);
-int patch_instruction(avr_flashaddr_t vaddr, void* function_pointer);
+int patch_instruction(avr_flashaddr_t vaddr, void *function_pointer, void *arg);
 patched_instruction* get_or_create_patched_instruction(avr_flashaddr_t key);
-function_patch* create_function_patch(void* function);
+function_patch* create_function_patch(void *function, void *arg);
+void check_run_patch(avr_t *avr);
 void test_patch_function();
 
 #ifdef __cplusplus

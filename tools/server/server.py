@@ -68,29 +68,29 @@ def addr_to_src(path_to_binary: str, addr: int) -> str:
 
 
 def update_coverage(args, gcovr, from_addr: int, to_addr: int):
-  for src_location in [addr_to_src(args.path_to_binary, from_addr),
-                       addr_to_src(args.path_to_binary, to_addr)]:
-    src_location = src_location.decode('UTF-8').strip()
-    if src_location.startswith('??:'):
-      continue
-    # decode and remove trailing newline
-    # if not key exists: mkdir -p of basedir and cp src. check if src exists
-    if not os.path.isabs(src_location) or not src_location[0] == '/':
-      assert False, f"Expected addr2line output {src_location} to be an absolute path"
-    src_location_file, src_location_line = src_location.split(':')
-    if not os.path.exists(src_location_file):
-      continue
-    cached_source_code_file = os.path.join(COVERAGE_DATA_DIR, src_location_file[1:])
-    gcov_file = cached_source_code_file + '.gcov'
-    if not os.path.exists(cached_source_code_file):
-      os.makedirs(os.path.dirname(cached_source_code_file), exist_ok=True)
-      shutil.copyfile(src_location_file, cached_source_code_file)
-      with open(gcov_file, 'w') as f:
-        # 'Source:' is relative to COVERAGE_DATA_DIR
-        f.write(f'-:0:Source:{src_location_file[1:]}\n')
-    with open(gcov_file, 'a') as f:
-      f.write(f'1:{src_location_line}:\n')
-    gcovr.new_coverage = True
+  # looks more clear if we only mark the to_addr line
+  src_location = addr_to_src(args.path_to_binary, to_addr)
+  src_location = src_location.decode('UTF-8').strip()
+  if src_location.startswith('??:'):
+    return 
+  # decode and remove trailing newline
+  # if not key exists: mkdir -p of basedir and cp src. check if src exists
+  if not os.path.isabs(src_location) or not src_location[0] == '/':
+    assert False, f"Expected addr2line output {src_location} to be an absolute path"
+  src_location_file, src_location_line = src_location.split(':')
+  if not os.path.exists(src_location_file):
+    return 
+  cached_source_code_file = os.path.join(COVERAGE_DATA_DIR, src_location_file[1:])
+  gcov_file = cached_source_code_file + '.gcov'
+  if not os.path.exists(cached_source_code_file):
+    os.makedirs(os.path.dirname(cached_source_code_file), exist_ok=True)
+    shutil.copyfile(src_location_file, cached_source_code_file)
+    with open(gcov_file, 'w') as f:
+      # 'Source:' is relative to COVERAGE_DATA_DIR
+      f.write(f'-:0:Source:{src_location_file[1:]}\n')
+  with open(gcov_file, 'a') as f:
+    f.write(f'1:{src_location_line}:\n')
+  gcovr.new_coverage = True
 
 
 def deserialize_header(header_raw):

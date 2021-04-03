@@ -861,6 +861,7 @@ run_one_again:
           cycle++;
         }
       }
+      edge_triggered(avr, avr->pc, new_pc);
     } break;
     case 0x1400: { // CP -- Compare -- 0001 01rd dddd rrrr
       get_vd5_vr5(opcode);
@@ -1442,6 +1443,7 @@ run_one_again:
                 cycle++;
               }
             }
+            edge_triggered(avr, avr->pc, new_pc);
           } break;
           case 0x9a00: { // SBI -- Set Bit in I/O Register -- 1001 1010 AAAA
                          // Abbb
@@ -1467,6 +1469,7 @@ run_one_again:
                 cycle++;
               }
             }
+            edge_triggered(avr, avr->pc, new_pc);
           } break;
           default:
             switch (opcode & 0xfc00) {
@@ -1568,6 +1571,7 @@ run_one_again:
         cycle++; // 2 cycles if taken, 1 otherwise
         new_pc = new_pc + (o << 1);
       }
+      edge_triggered(avr, avr->pc, new_pc);
     } break;
     case 0xf800:
     case 0xf900: { // BLD -- Bit Store from T into a Bit in Register -- 1111
@@ -1601,6 +1605,7 @@ run_one_again:
           cycle++;
         }
       }
+      edge_triggered(avr, avr->pc, new_pc);
     } break;
     default:
       _avr_invalid_opcode(avr);

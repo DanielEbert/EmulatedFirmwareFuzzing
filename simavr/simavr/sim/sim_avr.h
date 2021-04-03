@@ -171,7 +171,6 @@ typedef struct Input {
 
 typedef struct Fuzzer {
   Input *current_input;
-  size_t max_input_length;
   CC_Array *previous_interesting_inputs;
 } Fuzzer;
 

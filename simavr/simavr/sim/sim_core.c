@@ -19,18 +19,18 @@
         along with simavr.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include "sim_avr.h"
 #include "sim_core.h"
-#include "sim_gdb.h"
 #include "avr_flash.h"
 #include "avr_watchdog.h"
-#include "fuzz_patch_instructions.h"
-#include "sim_uthash.h"
 #include "fuzz_coverage.h"
+#include "fuzz_patch_instructions.h"
+#include "sim_avr.h"
+#include "sim_gdb.h"
+#include "sim_uthash.h"
+#include <ctype.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 // SREG bit names
 const char *_sreg_bit_name = "cznvshti";
@@ -666,8 +666,8 @@ run_one_again:
   //					case 0x940d: {	// JMP -- Long Call to
   // sub, 32 bits
   //-- 1001 010a aaaa 110a
-  //						// avr_flashaddr_t a = ((opcode &
-  //0x01f0)
+  //						// avr_flashaddr_t a = ((opcode
+  //& 0x01f0)
   //>> 3) | (opcode & 1);
   //						// uint16_t x =
   //_avr_flash_read16le(avr, new_pc);
@@ -681,8 +681,8 @@ run_one_again:
   //					case 0x940f: {	// CALL -- Long Call to
   // sub, 32 bits
   //-- 1001 010a aaaa 111a
-  //						// avr_flashaddr_t a = ((opcode &
-  //0x01f0)
+  //						// avr_flashaddr_t a = ((opcode
+  //& 0x01f0)
   //>> 3) | (opcode & 1);
   //						// uint16_t x =
   //_avr_flash_read16le(avr, new_pc);

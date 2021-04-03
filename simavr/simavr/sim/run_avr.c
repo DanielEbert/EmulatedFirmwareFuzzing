@@ -275,7 +275,7 @@ int main(int argc, char *argv[]) {
   signal(SIGTERM, sig_int);
 
   // TODO: seeds via arg
-  initialize_fuzzer(avr, "/home/user/EFF/seeds", 4096);
+  initialize_fuzzer(avr, "/home/user/EFF/seeds");
   initialize_server_notify(avr);
   initialize_patch_instructions(avr);
   initialize_coverage(avr);

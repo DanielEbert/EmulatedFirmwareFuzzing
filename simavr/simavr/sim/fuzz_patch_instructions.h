@@ -34,6 +34,7 @@ int check_run_patch(avr_t *avr);
 void reset_patch_side_effects(avr_t *avr);
 int test_patch_function(void *arg);
 int test_reset(void *arg);
+int override_args(void *arg);
 
 #ifdef __cplusplus
 };

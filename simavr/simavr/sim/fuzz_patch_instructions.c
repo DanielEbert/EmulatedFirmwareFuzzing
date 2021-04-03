@@ -1,8 +1,9 @@
 
 #include "fuzz_patch_instructions.h"
+#include "fuzz_fuzzer.h"
+#include "fuzz_util.h"
 #include "sim_avr.h"
 #include <stdio.h>
-#include "fuzz_fuzzer.h"
 
 void initialize_patch_instructions(avr_t *avr) {
   Patch_Side_Effects *patch_side_effects = malloc(sizeof(Patch_Side_Effects));
@@ -12,9 +13,18 @@ void initialize_patch_instructions(avr_t *avr) {
 
   patched_instructions = NULL;
   // patch_instruction(0x87c, test_patch_function, avr);
-  patch_instruction(0x8fe, test_patch_function, avr);
+  // patch_instruction(0x8fe, test_patch_function, avr);
   // patch_instruction(0x694, test_patch_function, avr);
-  patch_instruction(0x90e, test_reset, avr);
+  // patch_instruction(0x90e, test_reset, avr);
+
+  // test2
+  // patch_instruction(0x4e2, test_patch_function, avr);
+  // patch_instruction(0x916, test_reset, avr);
+
+  // deserializeJson
+
+  patch_instruction(0x370c, override_args, avr);
+  patch_instruction(0x37d4, test_reset, avr);
 }
 
 int patch_instruction(avr_flashaddr_t vaddr, void *function_pointer,
@@ -74,7 +84,7 @@ void reset_patch_side_effects(avr_t *avr) {
 
 int test_patch_function(void *arg) {
   ((avr_t *)arg)->patch_side_effects->skip_patched_instruction = 1;
-  //((avr_t *)arg)->patch_side_effects->run_return_instruction = 1;
+  ((avr_t *)arg)->patch_side_effects->run_return_instruction = 1;
   printf("Hello from test_patch_function, arg: %ld\n", ((avr_t *)arg)->cycle);
   return 1;
 }
@@ -85,5 +95,27 @@ int test_reset(void *arg) {
   evaluate_input(avr);
   generate_input(avr, avr->fuzzer);
   avr_reset(avr);
+  return 0;
+}
+
+int override_args(void *arg) {
+  avr_t *avr = (avr_t *)arg;
+
+  uint16_t input_length = avr->fuzzer->current_input->buf_len;
+  avr->data[22] = input_length % 256;
+  avr->data[23] = (input_length >> 8) % 256;
+
+  // for (int i = 15; i < 30; i++) {
+  //  printf("Register %d = %x\n", i, avr->data[i]);
+  //}
+  // printf("Data: %x\n", *(avr->data + avr->data[24] + avr->data[25] * 256
+  // + 2)); avr->data[24] = 0;
+  // TODO: now i need a method to convert emulator virtual address to host
+  // vaddr
+  printf("Overriding args\n");
+  write_to_sram(avr, avr->data[24] + avr->data[25] * 256,
+                avr->fuzzer->current_input->buf,
+                avr->fuzzer->current_input->buf_len);
+  // set arg 2
   return 0;
 }

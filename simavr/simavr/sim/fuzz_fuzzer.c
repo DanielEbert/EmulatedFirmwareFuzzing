@@ -1,18 +1,19 @@
 #define _GNU_SOURCE
 #include "fuzz_fuzzer.h"
+#include "fuzz_config.h"
 #include "fuzz_random.h"
 #include <dirent.h>
 #include <sim_avr.h>
 #include <stdio.h>
 
-void initialize_fuzzer(avr_t *avr, char *path_to_seeds, size_t max_input_len) {
+void initialize_fuzzer(avr_t *avr, char *path_to_seeds) {
   Fuzzer *fuzzer = malloc(sizeof(Fuzzer));
-  fuzzer->max_input_length = max_input_len;
+  avr->fuzzer = fuzzer;
 
   Input *current_input = malloc(sizeof(Input));
-  void *current_input_buffer = malloc(max_input_len);
+  void *current_input_buffer = malloc(MAX_INPUT_LENGTH);
   current_input->buf = current_input_buffer;
-  current_input->buf_len = max_input_len;
+  current_input->buf_len = 0;
   fuzzer->current_input = current_input;
 
   CC_ArrayConf array_conf;
@@ -20,13 +21,14 @@ void initialize_fuzzer(avr_t *avr, char *path_to_seeds, size_t max_input_len) {
   array_conf.capacity = 1000;
   CC_Array *previous_interesting_inputs;
   if (cc_array_new_conf(&array_conf, &previous_interesting_inputs) != CC_OK) {
-    perror("ERROR: Failed to initialize previous_interesting_input array\n");
+    fprintf(stderr,
+            "ERROR: Failed to initialize previous_interesting_input array\n");
     exit(1);
   }
   fuzzer->previous_interesting_inputs = previous_interesting_inputs;
 
   if (path_to_seeds != NULL) {
-    initialize_seeds(previous_interesting_inputs, path_to_seeds, max_input_len);
+    initialize_seeds(previous_interesting_inputs, path_to_seeds);
   }
 
   generate_input(avr, fuzzer);
@@ -35,7 +37,7 @@ void initialize_fuzzer(avr_t *avr, char *path_to_seeds, size_t max_input_len) {
 }
 
 void initialize_seeds(CC_Array *previous_interesting_inputs,
-                      char *path_to_seeds, size_t max_len) {
+                      char *path_to_seeds) {
   // for each file in the seeds folder, add the contents of this file to the
   // previous_interesting_inputs array
   DIR *seeds_dir = opendir(path_to_seeds);
@@ -46,8 +48,13 @@ void initialize_seeds(CC_Array *previous_interesting_inputs,
 
   struct dirent *seeds_dir_entry;
   char path_to_seed_file[512];
-  strcat(path_to_seed_file, path_to_seeds);
-  size_t path_to_seeds_len = strlen(path_to_seed_file);
+  size_t path_to_seeds_len = strlen(path_to_seeds);
+  if (path_to_seeds_len >= 512) {
+    fprintf(stderr,
+            "path_to_seeds path length must be less than 512 characters long.");
+    exit(1);
+  }
+  strcpy(path_to_seed_file, path_to_seeds);
   path_to_seed_file[path_to_seeds_len] = '/';
   path_to_seeds_len++;
 
@@ -61,7 +68,7 @@ void initialize_seeds(CC_Array *previous_interesting_inputs,
     strcpy(path_to_seed_file + path_to_seeds_len, seeds_dir_entry->d_name);
     // printf("Adding file %s to the previous interesting inputs\n",
     //       path_to_seed_file);
-    add_seed_from_file(previous_interesting_inputs, path_to_seed_file, max_len);
+    add_seed_from_file(previous_interesting_inputs, path_to_seed_file);
   }
 
   closedir(seeds_dir);
@@ -70,17 +77,19 @@ void initialize_seeds(CC_Array *previous_interesting_inputs,
   // TODO: also skip ones that exceed max input size
 }
 
-void add_seed_from_file(CC_Array *previous_interesting_inputs, char *file_path,
-                        size_t max_len) {
+void add_seed_from_file(CC_Array *previous_interesting_inputs,
+                        char *file_path) {
   FILE *f = fopen(file_path, "r");
   if (f == NULL) {
-    printf("Failed to open seed file %s\n", file_path);
+    fprintf(stderr, "Failed to open seed file %s filelen: %ld\n", file_path,
+            strlen(file_path));
+    perror("");
     return;
   }
 
   int pos = 0;
   int cur;
-  char *buffer = malloc(max_len);
+  char *buffer = malloc(MAX_INPUT_LENGTH);
   do {
     cur = fgetc(f);
     buffer[pos] = cur;
@@ -100,7 +109,7 @@ void add_previous_interesting_input(CC_Array *previous_interesting_inputs,
   entry->buf_len = buf_len;
 
   if (cc_array_add(previous_interesting_inputs, entry) != CC_OK) {
-    perror("Failed to add seed to previous_interesting_inputs array. \
+    fprintf(stderr, "Failed to add seed to previous_interesting_inputs array. \
             Likely out of memory.");
     exit(1);
   }
@@ -109,14 +118,16 @@ void add_previous_interesting_input(CC_Array *previous_interesting_inputs,
 Input *get_random_previous_interesting_input(CC_Array *inputs) {
 
   if (cc_array_size(inputs) == 0) {
-    perror("No previous interesting input.\n");
+    fprintf(stderr, "No previous interesting input.\n");
     exit(1);
   }
   size_t array_index = fast_random() % cc_array_size(inputs);
 
   void *entry;
   if (cc_array_get_at(inputs, array_index, &entry) != CC_OK) {
-    perror("Failed to retrieve element from previous_interesting_inputs array");
+    fprintf(
+        stderr,
+        "Failed to retrieve element from previous_interesting_inputs array");
     exit(1);
   }
   return (Input *)entry;
@@ -130,20 +141,18 @@ void generate_input(avr_t *avr, Fuzzer *fuzzer) {
   memcpy(fuzzer->current_input->buf, input->buf, input->buf_len);
   fuzzer->current_input->buf_len = input->buf_len;
 
-  mutate(fuzzer->current_input->buf, fuzzer->current_input->buf_len,
-         fuzzer->max_input_length);
+  mutate(fuzzer->current_input->buf, fuzzer->current_input->buf_len);
 
   avr->input_has_reached_new_coverage = 0;
 }
 
-// TODOE might use max_len later
-void mutate(void *buffer, size_t buf_len, size_t max_len) {
-  int num_mutations_1 = fast_random() % 5 + 1;
-  int num_mutations_2 = fast_random() % 5 + 1;
+void mutate(void *buffer, size_t buf_len) {
+  int num_mutations_1 = fast_random() % (NUM_MUTATIONS + 1);
+  int num_mutations_2 = fast_random() % (NUM_MUTATIONS + 1);
   for (int i = 0; i < num_mutations_1; i++) {
     for (int j = 0; j < num_mutations_2; j++) {
-      // TODOE here i can have another random that decides what to do e.g. flip,
-      // add, remove
+      // TODOE here i can have another random that decides what to do e.g.
+      // flip, add, remove
       int index = fast_random() % buf_len;
       char new_value = fast_random();
       *(char *)(buffer + index) = new_value;
@@ -156,6 +165,7 @@ void evaluate_input(avr_t *avr) {
   if (!avr->input_has_reached_new_coverage) {
     return;
   }
+  printf("Input with new coverage added.\n");
   add_previous_interesting_input(avr->fuzzer->previous_interesting_inputs,
                                  avr->fuzzer->current_input->buf,
                                  avr->fuzzer->current_input->buf_len);

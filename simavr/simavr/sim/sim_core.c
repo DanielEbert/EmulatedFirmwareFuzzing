@@ -136,7 +136,8 @@ void avr_core_watch_write(avr_t *avr, uint16_t addr, uint8_t v) {
                      "Address %04x=%02x low registers\n" FONT_DEFAULT,
             avr->pc, _avr_sp_get(avr), _avr_flash_read16le(avr, avr->pc), addr,
             v);
-    crash(avr);
+    crash(avr); // TODOEBERT: we probably can only write to registers with
+                // specific instructions?
   }
 #if AVR_STACK_WATCH
   /*
@@ -144,6 +145,8 @@ void avr_core_watch_write(avr_t *avr, uint16_t addr, uint8_t v) {
    * that is located higher on the stack than it should be. It's a sign of code
    * that has overrun it's stack frame and is munching on it's own return
    * address.
+   * EBERT: but this wont work if pointer is passed to function. e.g. to struct
+   * or class
    */
   if (avr->trace_data->stack_frame_index > 1 &&
       addr >
@@ -613,6 +616,7 @@ run_one_again:
       new_pc = _avr_pop_addr(avr);
       side_effect_sets_new_pc = 1;
       cycle += 1 + avr->address_size;
+      TRACE_JUMP();
       STACK_FRAME_POP()
     }
     if (avr->patch_side_effects->skip_patched_instruction) {

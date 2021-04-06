@@ -30,6 +30,7 @@ CFLAGS	+= -Werror
 # TODOE during fuzzing comment line below
 # TODOE: seg fault when uncommented. did i change sth to make tracing possible?
 CFLAGS	+= -DCONFIG_SIMAVR_TRACE=1
+# not working correctly (most of the time) CFLAGS += -DAVR_STACK_WATCH
 
 all:
 	$(MAKE) obj config

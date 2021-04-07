@@ -159,13 +159,14 @@ void avr_reset(avr_t *avr) {
 void avr_sadly_crashed(avr_t *avr, uint8_t signal) {
   AVR_LOG(avr, LOG_ERROR, "%s\n", __FUNCTION__);
   avr->state = cpu_Stopped;
-  if (avr->gdb_port) {
-    // enable gdb server, and wait
-    if (!avr->gdb)
-      avr_gdb_init(avr);
-  }
-  if (!avr->gdb)
-    avr->state = cpu_Crashed;
+  // EBERT: do not start gdb on crash
+  // if (avr->gdb_port) {
+  //  // enable gdb server, and wait
+  //  if (!avr->gdb)
+  //    avr_gdb_init(avr);
+  //}
+  // if (!avr->gdb)
+  avr->state = cpu_Crashed;
 }
 
 void avr_set_command_register(avr_t *avr, avr_io_addr_t addr) {
@@ -368,6 +369,9 @@ avr_t *avr_make_mcu_by_name(const char *name) {
   AVR_LOG(avr, LOG_TRACE,
           "Starting %s - flashend %04x ramend %04x e2end %04x\n", avr->mmcu,
           avr->flashend, avr->ramend, avr->e2end);
+  // Set default avr values
+  avr->stack_return_address = -1;
+  avr->do_reset = 0;
   return avr;
 }
 

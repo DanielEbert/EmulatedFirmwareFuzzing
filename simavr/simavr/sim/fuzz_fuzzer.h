@@ -2,6 +2,7 @@
 
 #include <collectc/cc_array.h>
 #include <sim_avr.h>
+#include "fuzz_fuzzer.h"
 
 #ifdef __cplusplus
 extern "C" {

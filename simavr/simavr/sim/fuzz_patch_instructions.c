@@ -11,6 +11,7 @@ void initialize_patch_instructions(avr_t *avr) {
   patch_side_effects->skip_patched_instruction = 0;
   avr->patch_side_effects = patch_side_effects;
 
+  // TODOE make this part of avr_t
   patched_instructions = NULL;
   // patch_instruction(0x87c, test_patch_function, avr);
   // patch_instruction(0x8fe, test_patch_function, avr);

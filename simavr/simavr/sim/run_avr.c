@@ -20,6 +20,7 @@
  */
 
 #include "fuzz_coverage.h"
+#include "fuzz_crash_handler.h"
 #include "fuzz_fuzzer.h"
 #include "fuzz_patch_instructions.h"
 #include "sim_avr.h"
@@ -279,6 +280,7 @@ int main(int argc, char *argv[]) {
   initialize_server_notify(avr);
   initialize_patch_instructions(avr);
   initialize_coverage(avr);
+  initialize_crash_handler(avr);
 
   for (;;) {
     int state = avr_run(avr);

@@ -9,4 +9,4 @@ parser.add_argument('symbol_name')
 
 args = parser.parse_args()
 
-os.system(f'nm {args.path_to_binary} | grep {args.symbol_name}')
+os.system(f'avr-nm {args.path_to_binary} | grep {args.symbol_name}')

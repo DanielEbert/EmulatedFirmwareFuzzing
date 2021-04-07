@@ -372,7 +372,10 @@ typedef struct avr_t {
     uint32_t len;
   } io_console_buffer;
 
-  // the rest is for fuzzing purposes
+  // The following is for fuzzing purposes
+
+  // if set to 1: reset the emulator as soon as possible
+  int do_reset;
 
   Fuzzer *fuzzer;
   // reached edge coverage dictionary. key is struct Edge.
@@ -382,6 +385,15 @@ typedef struct avr_t {
   int input_has_reached_new_coverage;
 
   Patch_Side_Effects *patch_side_effects;
+
+  // Key is vaddr where bug was first noticed. Value is struct Crash
+  CC_HashTable *unique_crashes;
+
+  // For Sanitizers
+
+  // Address of the saved return address on the current stack frame
+  // Set to -1 by default, which means that no return address is on the stack
+  int32_t stack_return_address;
 } avr_t;
 
 // this is a static constructor for each of the AVR devices

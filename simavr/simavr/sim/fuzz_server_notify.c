@@ -1,4 +1,5 @@
 #include "fuzz_coverage.h"
+#include "fuzz_crash_handler.h"
 #include "sim_avr.h"
 #include "sim_avr_types.h"
 #include <arpa/inet.h>
@@ -13,7 +14,8 @@ Sends messages of the following structure:
 Header has a fixed size of 5 bytes. The first byte specifies the ID of the
 message. The latter 4 bytes specify the length in bytes of the Body.
 
-ID 0: Coverage Information in form of an Edge struct.
+ID 1: Coverage Information in form of an Edge struct.
+ID 2: Information about a crash that includes the crashing input
 
 ******************************/
 
@@ -46,7 +48,24 @@ void initialize_server_notify(avr_t *avr) {
   server_connection->connection_established = 1;
 }
 
+int send_crash(Server_Connection *server_connection, Crash *crash) {
+  // Body consists of: | crash_id | crashing_addr | crashing_input |
+  // There is no need to send the crashing_input length here, since that is
+  // always body_size - 1 - 4 bytes (crashing_addr has a size of 4 bytes)
+  char msg_ID = 2;
+  uint32_t body_size = 1 + 4 + crash->crashing_input->buf_len;
+  if (send_header(server_connection, msg_ID, body_size) < 0 ||
+      send_raw(server_connection, &(crash->crash_id), 1) < 0 ||
+      send_raw(server_connection, &(crash->crashing_addr), 4) < 0 ||
+      send_raw(server_connection, crash->crashing_input->buf,
+               crash->crashing_input->buf_len) < 0) {
+    return -1;
+  }
+  return 0;
+}
+
 int send_coverage(Server_Connection *server_connection, Edge *edge) {
+  return 0; // TODOE remove me
   char msg_ID = 1;
   uint32_t body_size = sizeof(edge->from) + sizeof(edge->to);
   if (send_header(server_connection, msg_ID, body_size) < 0 ||

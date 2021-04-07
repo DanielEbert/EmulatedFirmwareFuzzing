@@ -17,8 +17,9 @@ import matplotlib.pyplot as plt
 
 
 PORT = 8123
-COVERAGE_DATA_DIR = 'coverage_files'
-OLD_COVERAGE_DATA_DIR = 'previous_runs'
+CURRENT_RUN_DIR = 'current_run'
+CRASHING_INPUTS_DIR = 'current_run/crashing_inputs'
+OLD_RUNS_DIR = 'previous_runs'
 
 
 def signal_handler(sig, frame):
@@ -55,7 +56,7 @@ class Update_UI(threading.Thread):
     self.edges_plot_data.append((time.time() - self.start_time, len(self.edges_plot_data) + 1))
 
   def run_gcovr(self):
-    os.system(f'cd {COVERAGE_DATA_DIR} && gcovr -b  . -g -k --html --html-details -o coverage.html')
+    os.system(f'cd {CURRENT_RUN_DIR} && gcovr -b  . -g -k --html --html-details -o coverage.html')
 
   def plot_coverage(self):
     if not self.edges_plot_data:
@@ -64,7 +65,7 @@ class Update_UI(threading.Thread):
     frame = pd.DataFrame(data, columns = ['Time (seconds)', 'Edges Reached']) 
     plot = sns.lineplot(data=frame, x='Time (seconds)', y='Edges Reached')
     plot.set(xscale='log')
-    plot.figure.savefig('coverage_over_time_plot.png')
+    plot.figure.savefig(f'{CURRENT_RUN_DIR}/coverage_over_time_plot.png')
     plt.clf()  # clear plot
 
 
@@ -108,18 +109,33 @@ def update_coverage(args, update_ui, from_addr: int, to_addr: int):
   src_location_file, src_location_line = src_location.split(':')
   if not os.path.exists(src_location_file):
     return 
-  cached_source_code_file = os.path.join(COVERAGE_DATA_DIR, src_location_file[1:])
+  cached_source_code_file = os.path.join(CURRENT_RUN_DIR, src_location_file[1:])
   gcov_file = cached_source_code_file + '.gcov'
   if not os.path.exists(cached_source_code_file):
     os.makedirs(os.path.dirname(cached_source_code_file), exist_ok=True)
     shutil.copyfile(src_location_file, cached_source_code_file)
     with open(gcov_file, 'w') as f:
-      # 'Source:' is relative to COVERAGE_DATA_DIR
+      # 'Source:' is relative to CURRENT_RUN_DIR 
       f.write(f'-:0:Source:{src_location_file[1:]}\n')
   with open(gcov_file, 'a') as f:
     f.write(f'1:{src_location_line}:\n')
   update_ui.on_new_edge()
   
+
+def save_crashing_input(crash_ID: int, crashing_addr: int, inp: bytes):
+  prefix = ''
+  if crash_ID == 1:
+    prefix = 'stack_buffer_overflow' # TODO: prefix is vaddr
+  else:
+    assert False, f'Unknown crashing input ID {crash_ID}'
+  # TODO: print addr in hex
+  filename = f'{prefix}_{crashing_addr:x}'
+  file_path = os.path.join(CRASHING_INPUTS_DIR, filename)
+  if os.path.exists(file_path):
+    print(f'Skipping duplicate crashing input file: {filename}')
+    return
+  with open(file_path, 'wb') as f:
+    f.write(inp)
 
 def deserialize_header(header_raw):
   # TODO: byteoder depends on CPU. do we ever use big endian? and does it matter if its run in a VM?
@@ -136,6 +152,11 @@ def handle_body(args, update_ui, msg_ID, body_raw):
     #print(f'{from_addr=} {addr_to_src(args.path_to_binary, from_addr)}, '
     #      f'{to_addr=} {addr_to_src(args.path_to_binary, to_addr)}')
     update_coverage(args, update_ui, from_addr, to_addr)
+  elif msg_ID == 2:
+    crash_ID = int(body_raw[0])
+    crashing_addr = int.from_bytes(body_raw[1:5], byteorder='little')
+    crashing_input = body_raw[5:]
+    save_crashing_input(crash_ID, crashing_addr, crashing_input)
   else:
     assert False, f"unknown {msg_ID=}"
 
@@ -149,7 +170,7 @@ def read_from_queue(args, update_ui, msg_queue):
   while True:
     msg = msg_queue.get()
     recv_buffer += msg
-    while len(recv_buffer) > wait_for_num_bytes:
+    while len(recv_buffer) >= wait_for_num_bytes:
       if waiting_for == 'header':
         msg_ID, wait_for_num_bytes = deserialize_header(recv_buffer[:5])
         recv_buffer = recv_buffer[5:]
@@ -162,16 +183,18 @@ def read_from_queue(args, update_ui, msg_queue):
 
 
 def move_old_data():
-  if not os.path.exists(COVERAGE_DATA_DIR):
-    os.mkdir(COVERAGE_DATA_DIR)
+  if not os.path.exists(CURRENT_RUN_DIR):
+    os.mkdir(CURRENT_RUN_DIR)
+    os.mkdir(CRASHING_INPUTS_DIR)
     return
-  if not os.path.exists(OLD_COVERAGE_DATA_DIR):
-    os.mkdir(OLD_COVERAGE_DATA_DIR)
-  modified_epoch_time = os.path.getmtime(COVERAGE_DATA_DIR)
+  if not os.path.exists(OLD_RUNS_DIR):
+    os.mkdir(OLD_RUNS_DIR)
+  modified_epoch_time = os.path.getmtime(CURRENT_RUN_DIR)
   modified_time = time.strftime('%d_%b_%Y_%H:%M:%S_%Z', time.localtime(modified_epoch_time))
-  move_dir_to = os.path.join(OLD_COVERAGE_DATA_DIR, f'previous_run_from_{modified_time}')
-  shutil.move(COVERAGE_DATA_DIR, move_dir_to)
-  os.mkdir(COVERAGE_DATA_DIR)
+  move_dir_to = os.path.join(OLD_RUNS_DIR, f'previous_run_from_{modified_time}')
+  shutil.move(CURRENT_RUN_DIR, move_dir_to)
+  os.mkdir(CURRENT_RUN_DIR)
+  os.mkdir(CRASHING_INPUTS_DIR)
 
 
 if __name__ == '__main__':

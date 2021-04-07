@@ -166,7 +166,12 @@ void evaluate_input(avr_t *avr) {
     return;
   }
   printf("Input with new coverage added.\n");
+
+  // Copy current input to a new buffer, buffer is saved as
+  // previous_interesting_input, and the current input (buffer) can be reused
+  char *buffer = malloc(MAX_INPUT_LENGTH);
+  memcpy(buffer, avr->fuzzer->current_input->buf, MAX_INPUT_LENGTH);
+
   add_previous_interesting_input(avr->fuzzer->previous_interesting_inputs,
-                                 avr->fuzzer->current_input->buf,
-                                 avr->fuzzer->current_input->buf_len);
+                                 buffer, avr->fuzzer->current_input->buf_len);
 }

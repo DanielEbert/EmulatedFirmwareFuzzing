@@ -1,3 +1,5 @@
 .vscode
-Collections-C
+simavr/lib
 *.swp
+current_run
+previous_runs

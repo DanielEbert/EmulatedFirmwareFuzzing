@@ -8,7 +8,6 @@ import subprocess
 import argparse
 import os
 import shutil
-import glob
 import time
 import signal
 import seaborn as sns
@@ -17,14 +16,17 @@ import matplotlib.pyplot as plt
 
 
 PORT = 8123
-CURRENT_RUN_DIR = 'current_run'
-CRASHING_INPUTS_DIR = 'current_run/crashing_inputs'
-OLD_RUNS_DIR = 'previous_runs'
+CURRENT_RUN_DIR = '/home/user/EFF/current_run'
+CRASHING_INPUTS_DIR = '/home/user/EFF/current_run/crashing_inputs'
+OLD_RUNS_DIR = '/home/user/EFF/previous_runs'
 
 
+# On <CTRL> + C, kill all threads instead of one thread
 def signal_handler(sig, frame):
   print('\nExiting...')
   os._exit(0)
+
+
 signal.signal(signal.SIGINT, signal_handler)
 
 
@@ -34,7 +36,7 @@ class Update_UI(threading.Thread):
   # list of tuples: (epoch, edges reached)
   edges_plot_data = []
 
-  def __init__(self, sleep_time = 5):
+  def __init__(self, sleep_time=5):
     threading.Thread.__init__(self)
     self.name = 'UI_thread'
     self.sleep_time = sleep_time
@@ -53,16 +55,19 @@ class Update_UI(threading.Thread):
     self.new_coverage = True
     if self.start_time is None:
       self.start_time = int(time.time())
-    self.edges_plot_data.append((time.time() - self.start_time, len(self.edges_plot_data) + 1))
+    self.edges_plot_data.append(
+        (time.time() - self.start_time, len(self.edges_plot_data) + 1))
 
   def run_gcovr(self):
-    os.system(f'cd {CURRENT_RUN_DIR} && gcovr -b  . -g -k --html --html-details -o coverage.html')
+    os.system(
+        f'cd {CURRENT_RUN_DIR} && gcovr -b  . -g -k --html --html-details -o coverage.html')
 
   def plot_coverage(self):
     if not self.edges_plot_data:
       return
-    data = self.edges_plot_data + [(int(time.time() - self.start_time), len(self.edges_plot_data))]
-    frame = pd.DataFrame(data, columns = ['Time (seconds)', 'Edges Reached']) 
+    data = self.edges_plot_data + \
+        [(int(time.time() - self.start_time), len(self.edges_plot_data))]
+    frame = pd.DataFrame(data, columns=['Time (seconds)', 'Edges Reached'])
     plot = sns.lineplot(data=frame, x='Time (seconds)', y='Edges Reached')
     plot.set(xscale='log')
     plot.figure.savefig(f'{CURRENT_RUN_DIR}/coverage_over_time_plot.png')
@@ -82,8 +87,9 @@ def listen_for_messages(recv_queue):
         # wait for recv of header
         data = conn.recv(4096)
         if len(data) == 0:
-          # TODO: tell the other thread to exit too
           print("Connection was closed")
+          # Kill Parent
+          os.kill(os.getppid(), signal.SIGTERM)
           os._exit(0)
         recv_queue.put(data)
   finally:
@@ -101,31 +107,32 @@ def update_coverage(args, update_ui, from_addr: int, to_addr: int):
   src_location = addr_to_src(args.path_to_binary, to_addr)
   src_location = src_location.decode('UTF-8').strip()
   if src_location.startswith('??:'):
-    return 
+    return
   # decode and remove trailing newline
   # if not key exists: mkdir -p of basedir and cp src. check if src exists
   if not os.path.isabs(src_location) or not src_location[0] == '/':
     assert False, f"Expected addr2line output {src_location} to be an absolute path"
   src_location_file, src_location_line = src_location.split(':')
   if not os.path.exists(src_location_file):
-    return 
-  cached_source_code_file = os.path.join(CURRENT_RUN_DIR, src_location_file[1:])
+    return
+  cached_source_code_file = os.path.join(
+      CURRENT_RUN_DIR, src_location_file[1:])
   gcov_file = cached_source_code_file + '.gcov'
   if not os.path.exists(cached_source_code_file):
     os.makedirs(os.path.dirname(cached_source_code_file), exist_ok=True)
     shutil.copyfile(src_location_file, cached_source_code_file)
     with open(gcov_file, 'w') as f:
-      # 'Source:' is relative to CURRENT_RUN_DIR 
+      # 'Source:' is relative to CURRENT_RUN_DIR
       f.write(f'-:0:Source:{src_location_file[1:]}\n')
   with open(gcov_file, 'a') as f:
     f.write(f'1:{src_location_line}:\n')
   update_ui.on_new_edge()
-  
+
 
 def save_crashing_input(crash_ID: int, crashing_addr: int, inp: bytes):
   prefix = ''
   if crash_ID == 1:
-    prefix = 'stack_buffer_overflow' # TODO: prefix is vaddr
+    prefix = 'stack_buffer_overflow'  # TODO: prefix is vaddr
   else:
     assert False, f'Unknown crashing input ID {crash_ID}'
   # TODO: print addr in hex
@@ -137,6 +144,7 @@ def save_crashing_input(crash_ID: int, crashing_addr: int, inp: bytes):
   with open(file_path, 'wb') as f:
     f.write(inp)
 
+
 def deserialize_header(header_raw):
   # TODO: byteoder depends on CPU. do we ever use big endian? and does it matter if its run in a VM?
   return header_raw[0], int.from_bytes(header_raw[1:5], byteorder='little')
@@ -146,10 +154,11 @@ def handle_body(args, update_ui, msg_ID, body_raw):
   if msg_ID == 1:
     # coverage event
     # body consists of: from addr (32 bit), to addr (32 bit)
-    assert len(body_raw) == 8, f"ERROR: expected msg_body size 8, got {len(body_raw)}"
+    assert len(
+        body_raw) == 8, f"ERROR: expected msg_body size 8, got {len(body_raw)}"
     from_addr = int.from_bytes(body_raw[:4], byteorder='little')
     to_addr = int.from_bytes(body_raw[4:8], byteorder='little')
-    #print(f'{from_addr=} {addr_to_src(args.path_to_binary, from_addr)}, '
+    # print(f'{from_addr=} {addr_to_src(args.path_to_binary, from_addr)}, '
     #      f'{to_addr=} {addr_to_src(args.path_to_binary, to_addr)}')
     update_coverage(args, update_ui, from_addr, to_addr)
   elif msg_ID == 2:
@@ -190,8 +199,10 @@ def move_old_data():
   if not os.path.exists(OLD_RUNS_DIR):
     os.mkdir(OLD_RUNS_DIR)
   modified_epoch_time = os.path.getmtime(CURRENT_RUN_DIR)
-  modified_time = time.strftime('%d_%b_%Y_%H:%M:%S_%Z', time.localtime(modified_epoch_time))
-  move_dir_to = os.path.join(OLD_RUNS_DIR, f'previous_run_from_{modified_time}')
+  modified_time = time.strftime(
+      '%d_%b_%Y_%H:%M:%S_%Z', time.localtime(modified_epoch_time))
+  move_dir_to = os.path.join(
+      OLD_RUNS_DIR, f'previous_run_from_{modified_time}')
   shutil.move(CURRENT_RUN_DIR, move_dir_to)
   os.mkdir(CURRENT_RUN_DIR)
   os.mkdir(CRASHING_INPUTS_DIR)
@@ -203,14 +214,12 @@ if __name__ == '__main__':
     information, and presents this information in a human readable format.
   """)
   parser.add_argument('path_to_binary')
-  parser.add_argument('--keep_coverage', action='store_true')
   args = parser.parse_args()
-  if not args.keep_coverage:
-    move_old_data()
+  move_old_data()
 
   msg_queue = mp.Queue()
   #p = mp.Process(target=listen_for_messages, args=(msg_queue,))
-  #p.start()
+  # p.start()
   # TODO: replace with multiprocessing if needed later
   _thread.start_new_thread(listen_for_messages, (msg_queue,))
   update_ui = Update_UI()

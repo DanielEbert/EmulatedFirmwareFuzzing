@@ -92,6 +92,7 @@ int main(int argc, char *argv[]) {
   int trace_vectors[8] = {0};
   int trace_vectors_count = 0;
   const char *vcd_input = NULL;
+  char *filename = NULL;
 
   if (argc == 1)
     display_usage(basename(argv[0]));
@@ -192,7 +193,7 @@ int main(int argc, char *argv[]) {
     } else if (!strcmp(argv[pi], "-ff")) {
       loadBase = AVR_SEGMENT_OFFSET_FLASH;
     } else if (argv[pi][0] != '-') {
-      char *filename = argv[pi];
+      filename = argv[pi];
       char *suffix = strrchr(filename, '.');
       if (suffix && !strcasecmp(suffix, ".hex")) {
         if (!name[0] || !f_cpu) {
@@ -277,7 +278,7 @@ int main(int argc, char *argv[]) {
 
   // TODO: seeds via arg
   initialize_fuzzer(avr, "/home/user/EFF/seeds");
-  initialize_server_notify(avr);
+  initialize_server_notify(avr, filename);
   initialize_patch_instructions(avr);
   initialize_coverage(avr);
   initialize_crash_handler(avr);

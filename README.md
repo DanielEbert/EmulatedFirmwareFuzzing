@@ -28,6 +28,8 @@
 
 # TODO
 
+- package server as service and autostart on OS start
+
 unique crashes. can do full stack trace (bad), or pc at crash
 on crash: reset
 

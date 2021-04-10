@@ -18,7 +18,10 @@ typedef struct Server_Connection {
   int connection_established;
 } Server_Connection;
 
-void initialize_server_notify(avr_t *avr);
+void initialize_server_notify(avr_t *avr, char *filename);
+void send_target_info(Server_Connection *server_connection, char *filename);
+int send_path_to_target_executable(Server_Connection *server_connection,
+                                   char *filename);
 int send_crash(Server_Connection *server_connection, Crash *crash);
 int send_coverage(Server_Connection *server_connection, Edge *edge);
 int send_header(Server_Connection *server_connection, char msg_ID, uint32_t body_size);

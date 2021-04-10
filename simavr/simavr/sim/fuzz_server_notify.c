@@ -5,7 +5,9 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/socket.h>
+#include <unistd.h>
 
 /******************************
 
@@ -20,7 +22,12 @@ ID 2: Information about a crash that includes the crashing input
 ******************************/
 
 // Client must run on localhost:8123
-void initialize_server_notify(avr_t *avr) {
+void initialize_server_notify(avr_t *avr, char *filename) {
+  if (filename == NULL) {
+    fprintf(stderr, "Path to executable argument missing.\nExiting.\n");
+    exit(1);
+  }
+
   Server_Connection *server_connection = malloc(sizeof(Server_Connection));
   server_connection->connection_established = 0;
   server_connection->s = -1;
@@ -46,6 +53,38 @@ void initialize_server_notify(avr_t *avr) {
 
   printf("Connected to 127.0.0.1:8123\n");
   server_connection->connection_established = 1;
+
+  send_target_info(server_connection, filename);
+}
+
+void send_target_info(Server_Connection *server_connection, char *filename) {
+  // Check if filename is a relative path
+  if (filename[0] != '/') {
+    // Prepend current working directory to filename
+    char path_to_file[1024];
+    size_t filename_size = strlen(filename);
+    strncpy(filename, path_to_file, filename_size);
+    // getcwd string is null terminated
+    if (getcwd(path_to_file + filename_size, 1024 - filename_size) == NULL) {
+      perror("getcwd Error ");
+      exit(1);
+    }
+    send_path_to_target_executable(server_connection, path_to_file);
+  } else {
+    send_path_to_target_executable(server_connection, filename);
+  }
+}
+
+int send_path_to_target_executable(Server_Connection *server_connection,
+                                   char *filename) {
+  char msg_ID = 0;
+  size_t filename_size = strlen(filename);
+  uint32_t body_size = filename_size;
+  if (send_header(server_connection, msg_ID, body_size) < 0 ||
+      send_raw(server_connection, filename, filename_size) < 0) {
+    return -1;
+  }
+  return 0;
 }
 
 int send_crash(Server_Connection *server_connection, Crash *crash) {
@@ -65,7 +104,6 @@ int send_crash(Server_Connection *server_connection, Crash *crash) {
 }
 
 int send_coverage(Server_Connection *server_connection, Edge *edge) {
-  return 0; // TODOE remove me
   char msg_ID = 1;
   uint32_t body_size = sizeof(edge->from) + sizeof(edge->to);
   if (send_header(server_connection, msg_ID, body_size) < 0 ||

@@ -1,12 +1,17 @@
 
 void setup() {
   Serial.begin(9600);
-  myFunction();
+  int a = random();
+  int ret = myFunction(a);
+  Serial.println((String)ret);
 }
 
-void myFunction() {
-  int counter;
-  Serial.println((String)counter);
+int myFunction(int a) {
+  int counter = a;
+  if (counter == 0) {
+    return 1;
+  }
+  return 0;
 }
 
 void loop(){}

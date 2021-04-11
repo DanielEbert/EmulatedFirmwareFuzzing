@@ -16,12 +16,13 @@ Sends messages of the following structure:
 Header has a fixed size of 5 bytes. The first byte specifies the ID of the
 message. The latter 4 bytes specify the length in bytes of the Body.
 
+ID 0: Path to the executable file that is emulated.
 ID 1: Coverage Information in form of an Edge struct.
-ID 2: Information about a crash that includes the crashing input
+ID 2: Information about a crash that includes the crashing input.
 
 ******************************/
 
-// Client must run on localhost:8123
+// Server must listen on localhost:8123
 void initialize_server_notify(avr_t *avr, char *filename) {
   if (filename == NULL) {
     fprintf(stderr, "Path to executable argument missing.\nExiting.\n");

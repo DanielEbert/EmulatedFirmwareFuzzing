@@ -24,8 +24,12 @@ void initialize_patch_instructions(avr_t *avr) {
 
   // deserializeJson
 
-  patch_instruction(0x370c, override_args, avr);
-  patch_instruction(0x37d4, test_reset, avr);
+  // patch_instruction(0x370c, override_args, avr);
+  // patch_instruction(0x37d4, test_reset, avr);
+
+  // irq tests
+  patch_instruction(0x5f4, noop, avr);
+  patch_instruction(0x606, test_raise_interrupt, avr);
 }
 
 int patch_instruction(avr_flashaddr_t vaddr, void *function_pointer,
@@ -60,6 +64,8 @@ function_patch *create_function_patch(void *function, void *arg) {
   entry->arg = arg;
   return entry;
 }
+
+int noop(avr_t *avr) { return 0; }
 
 int check_run_patch(avr_t *avr) {
   patched_instruction *patch;
@@ -118,5 +124,11 @@ int override_args(void *arg) {
                 avr->fuzzer->current_input->buf,
                 avr->fuzzer->current_input->buf_len);
   // set arg 2
+  return 0;
+}
+
+int test_raise_interrupt(void *arg) {
+  avr_t *avr = (avr_t *)arg;
+  avr_raise_interrupt(avr, avr->interrupts.vector[5]);
   return 0;
 }

@@ -72,4 +72,5 @@ https://github.com/andreafioraldi/FuzzSplore/tree/master/report/img
   - v[3] is digitalPinToInterrupt(20)
   - v[4] is digitalPinToInterrupt(19)
   - v[5] is digitalPinToInterrupt(18)
+    > > TODO: make a function digitalPinToInterrupt that does this conversion
 - write about possible solutions to student challenges

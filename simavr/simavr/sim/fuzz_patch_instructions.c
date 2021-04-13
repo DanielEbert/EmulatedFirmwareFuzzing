@@ -130,5 +130,7 @@ int override_args(void *arg) {
 int test_raise_interrupt(void *arg) {
   avr_t *avr = (avr_t *)arg;
   avr_raise_interrupt(avr, avr->interrupts.vector[5]);
+  // TODO: i cant call above in a loop. how many cycles do i need to wait?
+  // should i call reset?
   return 0;
 }

@@ -1,17 +1,19 @@
 
 void setup() {
   Serial.begin(9600);
-  int a = random();
-  int ret = myFunction(a);
+  int ret = myFunction();
   Serial.println((String)ret);
 }
 
-int myFunction(int a) {
-  int counter = a;
-  if (counter == 0) {
-    return 1;
-  }
-  return 0;
+int myFunction() {
+  int c;
+  volatile int a[10];
+  if (rand()) c = 1;
+  return c2(c);
 }
+int c2(int a) {
+return a;
+}
+
 
 void loop(){}

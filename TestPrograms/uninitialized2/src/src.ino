@@ -2,14 +2,14 @@
 void setup() {
   Serial.begin(9600);
   int ret = myFunction();
-  Serial.println((String)ret);
+  Serial.println(ret, DEC);
 }
 
 int myFunction() {
-  int c;
+  int c = 3;
   volatile int a[10];
   if (a[5] == 30) c = 1;
-  return c2(c);
+  return c;
 }
 int c2(int a) {
 return a;

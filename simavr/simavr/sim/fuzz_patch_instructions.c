@@ -28,8 +28,8 @@ void initialize_patch_instructions(avr_t *avr) {
   // patch_instruction(0x37d4, test_reset, avr);
 
   // irq tests
-  patch_instruction(0x5f4, noop, avr);
-  patch_instruction(0x606, test_raise_interrupt, avr);
+  // patch_instruction(0x5f4, noop, avr);
+  // patch_instruction(0x606, test_raise_interrupt, avr);
 }
 
 int patch_instruction(avr_flashaddr_t vaddr, void *function_pointer,

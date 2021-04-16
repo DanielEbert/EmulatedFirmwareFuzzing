@@ -394,6 +394,8 @@ typedef struct avr_t {
   // Address of the saved return address on the current stack frame
   // Set to -1 by default, which means that no return address is on the stack
   int32_t stack_return_address;
+  uint8_t *shadow;
+  avr_flashaddr_t *shadow_propagation;
 } avr_t;
 
 // this is a static constructor for each of the AVR devices

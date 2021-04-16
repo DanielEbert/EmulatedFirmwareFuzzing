@@ -34,6 +34,16 @@ void initialize_fuzzer(avr_t *avr, char *path_to_seeds) {
   generate_input(avr, fuzzer);
   // printf("%.*s\n", (int)fuzzer->current_input->buf_len,
   //       (char *)fuzzer->current_input->buf);
+
+  // TODOE: refactor; malloc error checks
+  avr->shadow = calloc(1, 40960); // TODO: set the init ones to 1; change size
+  avr->shadow_propagation = calloc(sizeof(avr_flashaddr_t), 40960);
+  // stack is towards the end.. lets just set the first addr to 1. note that
+  // the registers are located there aswell, but since the standard lib code
+  // is run at the start this is probably fine anyway
+  for (int i = 0; i < 3000; i++) {
+    avr->shadow[i] = 1;
+  }
 }
 
 void initialize_seeds(CC_Array *previous_interesting_inputs,

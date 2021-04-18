@@ -5,14 +5,18 @@
 #include "sim_avr.h"
 #include <stdio.h>
 
+// TODOE in this file helper functions for user
+
 void initialize_patch_instructions(avr_t *avr) {
   Patch_Side_Effects *patch_side_effects = malloc(sizeof(Patch_Side_Effects));
   patch_side_effects->run_return_instruction = 0;
-  patch_side_effects->skip_patched_instruction = 0;
   avr->patch_side_effects = patch_side_effects;
 
-  // TODOE make this part of avr_t
+  // TODOE make this part of avr_t. currently its a global variable
   patched_instructions = NULL;
+
+  setup_patches(avr);
+
   // patch_instruction(0x87c, test_patch_function, avr);
   // patch_instruction(0x8fe, test_patch_function, avr);
   // patch_instruction(0x694, test_patch_function, avr);
@@ -30,7 +34,11 @@ void initialize_patch_instructions(avr_t *avr) {
   // irq tests
   // patch_instruction(0x5f4, noop, avr);
   // patch_instruction(0x606, test_raise_interrupt, avr);
+  // patch_instruction(0x6bc, print_current_input, avr);
+  // patch_instruction(0x67e, test_reset, avr);
 }
+
+void setup_patches(avr_t *avr) { printf("Using no patches.\n"); }
 
 int patch_instruction(avr_flashaddr_t vaddr, void *function_pointer,
                       void *arg) {
@@ -65,47 +73,60 @@ function_patch *create_function_patch(void *function, void *arg) {
   return entry;
 }
 
-int noop(avr_t *avr) { return 0; }
-
-int check_run_patch(avr_t *avr) {
+void check_run_patch(avr_t *avr) {
   patched_instruction *patch;
   HASH_FIND_INT(patched_instructions, &(avr->pc), patch);
   if (patch != NULL) {
     function_patch *t;
-    int max = 0;
     DL_FOREACH(patch->function_patches, t) {
-      int (*s)() = t->function_pointer;
-      int cur = (*s)(t->arg);
-      if (cur > max)
-        max = cur;
+      void (*s)() = t->function_pointer;
+      (*s)(t->arg);
     }
-    return max;
   }
-  return 0;
 }
 
-void reset_patch_side_effects(avr_t *avr) {
-  avr->patch_side_effects->skip_patched_instruction = 0;
-  avr->patch_side_effects->run_return_instruction = 0;
+uint32_t get_symbol_address(char *symbol_name, avr_t *avr) {
+  if (!cc_hashtable_contains_key(avr->symbols, symbol_name)) {
+    // Because this function is called during setup, we can exit here to give
+    // fast feedback to the user
+    fprintf(stderr, "get_symbol_name Error: No such symbol: %s\n", symbol_name);
+    exit(1);
+  }
+  void *entry;
+  if (cc_hashtable_get(avr->symbols, symbol_name, &entry) != CC_OK) {
+    fprintf(stderr, "Failed to retrieve hashtable value for symbol %s\n",
+            symbol_name);
+    exit(1);
+  }
+  avr_symbol_t *symbol_entry = (avr_symbol_t *)entry;
+  return symbol_entry->addr;
 }
 
-int test_patch_function(void *arg) {
-  ((avr_t *)arg)->patch_side_effects->skip_patched_instruction = 1;
+void noop(avr_t *avr) {}
+
+void print_current_input(void *arg) {
+  avr_t *avr = (avr_t *)arg;
+  printf("Current input:\n");
+  fwrite(avr->fuzzer->current_input->buf, avr->fuzzer->current_input->buf_len,
+         1, stdout);
+  printf("\n");
+}
+
+void test_patch_function(void *arg) {
   ((avr_t *)arg)->patch_side_effects->run_return_instruction = 1;
   printf("Hello from test_patch_function, arg: %ld\n", ((avr_t *)arg)->cycle);
-  return 1;
 }
 
-int test_reset(void *arg) {
+void fuzz_reset(void *arg) {
   avr_t *avr = (avr_t *)arg;
-  printf("Resetting, arg: %ld\n", avr->cycle);
+  // TODOE: remove printf here
+  printf("Resetting");
   evaluate_input(avr);
   generate_input(avr, avr->fuzzer);
   avr_reset(avr);
-  return 0;
 }
 
-int override_args(void *arg) {
+void override_args(void *arg) {
   avr_t *avr = (avr_t *)arg;
 
   uint16_t input_length = avr->fuzzer->current_input->buf_len;
@@ -124,13 +145,11 @@ int override_args(void *arg) {
                 avr->fuzzer->current_input->buf,
                 avr->fuzzer->current_input->buf_len);
   // set arg 2
-  return 0;
 }
 
-int test_raise_interrupt(void *arg) {
+void test_raise_interrupt(void *arg) {
   avr_t *avr = (avr_t *)arg;
   avr_raise_interrupt(avr, avr->interrupts.vector[5]);
   // TODO: i cant call above in a loop. how many cycles do i need to wait?
   // should i call reset?
-  return 0;
 }

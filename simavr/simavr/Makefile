@@ -29,7 +29,7 @@ CFLAGS	+= -Werror
 # it otherwise eat quite a bit of few cycles, even disabled
 # TODOE during fuzzing comment line below
 # TODOE: seg fault when uncommented. did i change sth to make tracing possible?
-CFLAGS	+= -DCONFIG_SIMAVR_TRACE=1
+CFLAGS	+= -DCONFIG_SIMAVR_TRACE=1 #-DELF_SYMBOLS=1
 # not working correctly (most of the time) CFLAGS += -DAVR_STACK_WATCH
 
 all:

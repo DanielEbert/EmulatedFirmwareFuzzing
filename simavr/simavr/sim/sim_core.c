@@ -23,13 +23,13 @@
 #include "avr_flash.h"
 #include "avr_watchdog.h"
 #include "fuzz_coverage.h"
+#include "fuzz_helper.h"
 #include "fuzz_patch_instructions.h"
 #include "sim_avr.h"
 #include "sim_gdb.h"
 #include "sim_uthash.h"
 #include <ctype.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 // SREG bit names
@@ -136,14 +136,13 @@ void avr_core_watch_write(avr_t *avr, uint16_t addr, uint8_t v) {
                      "Address %04x=%02x low registers\n" FONT_DEFAULT,
             avr->pc, _avr_sp_get(avr), _avr_flash_read16le(avr, avr->pc), addr,
             v);
-    crash(avr); // TODOEBERT: we probably can only write to registers with
-                // specific instructions?
+    crash(avr);
   }
 
   // Buffer Overflow Check
   if (avr->stack_return_address == addr) {
-    printf(FONT_RED "%04x : Stack Smashing Detected\n"
-                    "SP %04x, A=%04x <= %02x\n" FONT_DEFAULT,
+    printf("%04x : Stack Smashing Detected\n"
+           "SP %04x, A=%04x <= %02x\n",
            avr->pc, _avr_sp_get(avr), addr, v);
     crash_found(avr, avr->pc, 1);
   }
@@ -626,19 +625,20 @@ run_one_again:
   int side_effect_sets_new_pc = 0;
   int cycle = 1;
 
-  reset_patch_side_effects(avr);
-  int has_side_effects = check_run_patch(avr);
-  if (has_side_effects != 0) {
-    if (avr->patch_side_effects->run_return_instruction) {
-      new_pc = _avr_pop_addr(avr);
-      side_effect_sets_new_pc = 1;
-      cycle += 1 + avr->address_size;
-      TRACE_JUMP();
-      STACK_FRAME_POP()
-    }
-    if (avr->patch_side_effects->skip_patched_instruction) {
-      return new_pc;
-    }
+  check_run_patch(avr);
+  if (avr->patch_side_effects->run_return_instruction) {
+    // Execute a 'ret' instruction. The callee must make sure that the
+    // stack pointer points to a valid return address. This is, for example,
+    // the case right at the start of a function.
+    // TODOE shadow bits check?
+    avr->patch_side_effects->run_return_instruction = 0;
+    new_pc = _avr_pop_addr(avr);
+    side_effect_sets_new_pc = 1;
+    cycle += 1 + avr->address_size;
+    TRACE_JUMP();
+    STACK_FRAME_POP()
+    // skip patched instruction
+    return new_pc;
   }
 
   uint32_t opcode = _avr_flash_read16le(avr, avr->pc);
@@ -650,23 +650,7 @@ run_one_again:
   uint8_t *alsos = avr->shadow;
   avr_flashaddr_t *sprop = avr->shadow_propagation;
 
-  // TODOE testing, remove me (probably)
-  if (avr->pc == 0x288) { //|| avr->pc == 0x4d8) {
-    // for (int i = 0; i < 33; i++) {
-    //  printf("R %d = %d\n", i, s[i]);
-    //}
-    // printf("RSF %d\n", s[SF]);
-    // printf("SP %d\n", _avr_sp_get(avr));
-    // printf("Around Shadow area:\n");
-    // for (int i = -10; i < 10; i++) {
-    //  printf("s: %d -> %d\n", _avr_sp_get(avr) + i, s[_avr_sp_get(avr) + i]);
-    //}
-    // exit(0);
-    // s[22] = s[23] = 1;
-    // we need 14 and maybe 15
-    // we need 23, probably also 22?
-    // s[14] = s[15] = 1; // TODOE s[22] = s[23] = 1;
-  }
+  avr->stackframe_min_sp = min(avr->stackframe_min_sp, _avr_sp_get(avr));
 
   // SP is always defined
   s[R_SPL] = s[R_SPH] = 1;
@@ -853,7 +837,11 @@ run_one_again:
         }
       }
       edge_triggered(avr, avr->pc, new_pc);
-      // TODOE sanitizer here?
+      if (s[d] == 0 || s[r] == 0) { // TODOE sani
+        printf(
+            "Operands in compare are not initialized at pc %x with origin %x\n",
+            avr->pc, sprop[SF]);
+      }
     } break;
     case 0x1400: { // CP -- Compare -- 0001 01rd dddd rrrr
       get_vd5_vr5(opcode);
@@ -1154,17 +1142,18 @@ run_one_again:
         int sr = 1;
         for (int i = 0; i < avr->address_size; i++, sp++) {
           sr &= s[sp];
-          s[sp] = 0; // TODOE not sure
+          s[sp] = 0;
           sprop[sp] = 0;
         }
-        // testing only -- maybe save max SP and on ret clear are between
-        // current SP and max SP, reset max SP
-        for (int i = 0; i < 100; i++) {
-          s[sp - 1 - i] = 0;
-          sprop[sp - 1 - i] = 0;
+        // we could add a check here or somewhere else if stack ran into other
+        // sections like the .bss section
+        for (avr_flashaddr_t i = avr->stackframe_min_sp; i < sp; i++) {
+          s[i] = 0;
+          sprop[i] = 0;
         }
-        // TODOE when does this case actually occur?
-        if (sr == 0) {
+        avr->stackframe_min_sp = _avr_sp_get(avr);
+
+        if (sr == 0) { // TODOE sani
           printf(
               "Return Address from uninitialized value at return with pc %d\n",
               avr->pc);
@@ -1174,7 +1163,6 @@ run_one_again:
         STATE("ret%s\n", opcode & 0x10 ? "i" : "");
         TRACE_JUMP();
         STACK_FRAME_POP();
-        // TODOE later; here also check for shadow bit set
       } break;
       case 0x95c8: { // LPM -- Load Program Memory R0 <- (Z) -- 1001 0101 1100
                      // 1000
@@ -1250,8 +1238,6 @@ run_one_again:
             sprop[R_ZL] = sprop[R_ZH] = sp;
           }
           cycle += 2; // 3 cycles
-          // TODOE I ignored rampz on this one. make sure itsalways set. maybe
-          // mega doesnt have this oen anyway
         } break;
         /*
          * Load store instructions
@@ -1401,7 +1387,9 @@ run_one_again:
           s[d] = s[_avr_sp_get(avr)]; // order important
           sprop[d] = sprop_1(sprop[_avr_sp_get(avr)], !s[d]);
           s[_avr_sp_get(avr)] = 0;
-          sprop[_avr_sp_get(avr)] = 0; // TODOE should be fine, set next time
+          sprop[_avr_sp_get(avr)] =
+              0; // it is fine that we dont set shadow prop right here. They are
+                 // set on next access.
         } break;
         case 0x920f: { // PUSH -- 1001 001d dddd 1111
           get_vd5(opcode);
@@ -1584,9 +1572,7 @@ run_one_again:
                 cycle++;
               }
             }
-            edge_triggered(
-                avr, avr->pc,
-                new_pc); // TODOE: actually in these skip cases we need sreg set
+            edge_triggered(avr, avr->pc, new_pc);
           } break;
           case 0x9a00: { // SBI -- Set Bit in I/O Register -- 1001 1010 AAAA
                          // Abbb
@@ -1658,7 +1644,7 @@ run_one_again:
       get_d5_a6(opcode);
       STATE("in %s, %s[%02x]\n", avr_regname(d), avr_regname(A), avr->data[A]);
       _avr_set_r(avr, d, _avr_get_ram(avr, A));
-      s[d] = 1; // TODOE is this set externally?? setting to 1 for now
+      s[d] = 1; // I assume these are set externally, so I set them to 1 always
       sprop[d] = 0;
     } break;
     default:
@@ -1750,8 +1736,8 @@ run_one_again:
       uint8_t v = (vd & ~mask) | (avr->sreg[S_T] ? mask : 0);
       STATE("bld %s[%02x], 0x%02x = %02x\n", avr_regname(d), vd, mask, v);
       _avr_set_r(avr, d, v);
-      // TODOE sani with S_T? i think this is normally just not set? or maybe
-      // not?
+      alsos[d] = alsos[v] & alsos[SF];
+      sprop[d] = sprop_2(sprop[v], sprop[SF], !alsos[d]);
     } break;
     case 0xfa00:
     case 0xfb00: { // BST -- Bit Store into T from bit in Register -- 1111 101d

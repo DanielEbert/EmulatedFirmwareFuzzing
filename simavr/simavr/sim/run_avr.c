@@ -29,6 +29,7 @@
 #include "sim_gdb.h"
 #include "sim_hex.h"
 #include "sim_vcd_file.h"
+#include <collectc/cc_hashtable.h>
 #include <libgen.h>
 #include <signal.h>
 #include <stdio.h>
@@ -92,10 +93,18 @@ int main(int argc, char *argv[]) {
   int trace_vectors[8] = {0};
   int trace_vectors_count = 0;
   const char *vcd_input = NULL;
+  char *run_once_file = NULL;
   char *filename = NULL;
+  CC_HashTable *symbols = NULL;
+  // symbol lookup
 
   if (argc == 1)
     display_usage(basename(argv[0]));
+
+  if (cc_hashtable_new(&symbols) != CC_OK) {
+    fprintf(stderr, "ERROR: Allocation failed for symbols hash table.\n");
+    exit(1);
+  }
 
   for (int pi = 1; pi < argc; pi++) {
     if (!strcmp(argv[pi], "--list-cores")) {
@@ -192,6 +201,14 @@ int main(int argc, char *argv[]) {
       loadBase = AVR_SEGMENT_OFFSET_EEPROM;
     } else if (!strcmp(argv[pi], "-ff")) {
       loadBase = AVR_SEGMENT_OFFSET_FLASH;
+    } else if (!strcmp(argv[pi], "--run_once_with")) {
+      if (pi + 1 >= argc) {
+        fprintf(stderr,
+                "%s: missing mandatory path to input file argument for %s.\n",
+                argv[0], argv[pi]);
+        exit(1);
+      }
+      run_once_file = argv[++pi];
     } else if (argv[pi][0] != '-') {
       filename = argv[pi];
       char *suffix = strrchr(filename, '.');
@@ -226,7 +243,7 @@ int main(int argc, char *argv[]) {
           }
         }
       } else {
-        if (elf_read_firmware(filename, &f) == -1) {
+        if (elf_read_firmware(filename, &f, symbols) == -1) {
           fprintf(stderr, "%s: Unable to load firmware from file %s\n", argv[0],
                   filename);
           exit(1);
@@ -273,11 +290,27 @@ int main(int argc, char *argv[]) {
     avr_gdb_init(avr);
   }
 
+  // make sure that the required symbols are set
+  char *required_symbols[] = {"__bss_end"};
+  size_t required_symbols_size =
+      sizeof(required_symbols) / sizeof(required_symbols[0]);
+
+  for (int i = 0; i < required_symbols_size; i++) {
+    if (!cc_hashtable_contains_key(symbols, required_symbols[i])) {
+      fprintf(stderr,
+              "Error: Trying to emulate via an elf file that does not have the "
+              "required symbol %s\n",
+              required_symbols[i]);
+      exit(1);
+    }
+  }
+  avr->symbols = symbols;
+
   signal(SIGINT, sig_int);
   signal(SIGTERM, sig_int);
 
   // TODO: seeds via arg
-  initialize_fuzzer(avr, "/home/user/EFF/seeds");
+  initialize_fuzzer(avr, "/home/user/EFF/seeds", run_once_file);
   initialize_server_notify(avr, filename);
   initialize_patch_instructions(avr);
   initialize_coverage(avr);

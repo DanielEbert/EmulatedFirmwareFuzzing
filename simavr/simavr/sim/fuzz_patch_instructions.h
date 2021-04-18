@@ -27,16 +27,19 @@ typedef struct patched_instruction {
 struct patched_instruction *patched_instructions;
 
 void initialize_patch_instructions(struct avr_t *);
+void setup_patches(avr_t *avr) __attribute__((weak));
 int patch_instruction(avr_flashaddr_t vaddr, void *function_pointer, void *arg);
 patched_instruction *get_or_create_patched_instruction(avr_flashaddr_t key);
 function_patch *create_function_patch(void *function, void *arg);
-int check_run_patch(avr_t *avr);
+void check_run_patch(avr_t *avr);
 void reset_patch_side_effects(avr_t *avr);
-int test_patch_function(void *arg);
-int test_reset(void *arg);
-int override_args(void *arg);
-int test_raise_interrupt(void *arg);
-int noop(avr_t *avr);
+void test_patch_function(void *arg);
+void fuzz_reset(void *arg);
+void print_current_input(void *arg);
+void override_args(void *arg);
+void test_raise_interrupt(void *arg);
+void noop(avr_t *avr);
+uint32_t get_symbol_address(char *symbol_name, avr_t *avr);
 
 #ifdef __cplusplus
 };

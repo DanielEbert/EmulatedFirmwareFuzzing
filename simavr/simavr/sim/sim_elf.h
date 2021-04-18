@@ -23,6 +23,7 @@
 #define __SIM_ELF_H__
 
 #include "avr/avr_mcu_section.h"
+#include <collectc/cc_hashtable.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -85,7 +86,8 @@ typedef struct elf_firmware_t {
 int
 elf_read_firmware(
 	const char * file,
-	elf_firmware_t * firmware);
+	elf_firmware_t * firmware, 
+	CC_HashTable *symbols);
 
 void
 avr_load_firmware(

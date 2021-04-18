@@ -23,6 +23,7 @@
         along with simavr.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <collectc/cc_hashtable.h>
 #include <fcntl.h>
 #include <gelf.h>
 #include <libelf.h>
@@ -259,7 +260,8 @@ static int elf_copy_section(const char *name, Elf_Data *data, uint8_t **dest) {
   return 0;
 }
 
-int elf_read_firmware(const char *file, elf_firmware_t *firmware) {
+int elf_read_firmware(const char *file, elf_firmware_t *firmware,
+                      CC_HashTable *symbols) {
   Elf32_Ehdr elf_header; /* ELF header */
   Elf *elf = NULL;       /* Our Elf pointer for libelf */
   int fd;                // File Descriptor
@@ -348,6 +350,7 @@ int elf_read_firmware(const char *file, elf_firmware_t *firmware) {
           avr_symbol_t *s = malloc(sizeof(avr_symbol_t) + strlen(name) + 1);
           strcpy((char *)s->symbol, name);
           s->addr = sym.st_value;
+          // printf("Symbol: %x - %s\n", s->addr, name);
           if (!(firmware->symbolcount % 8))
             firmware->symbol =
                 realloc(firmware->symbol, (firmware->symbolcount + 8) *
@@ -366,6 +369,13 @@ int elf_read_firmware(const char *file, elf_firmware_t *firmware) {
                         sizeof(firmware->symbol[0]));
           firmware->symbol[insert] = s;
           firmware->symbolcount++;
+
+          // Insert current symbol into the symbols hash table
+          if (cc_hashtable_add(symbols, (char *)s->symbol, s) != CC_OK) {
+            fprintf(stderr,
+                    "Failed to insert element %s into symbols hash table\n",
+                    s->symbol);
+          }
         }
       }
     }
@@ -380,14 +390,14 @@ int elf_read_firmware(const char *file, elf_firmware_t *firmware) {
   if (data_text) {
     //	hdump("code", data_text->d_buf, data_text->d_size);
     memcpy(firmware->flash + offset, data_text->d_buf, data_text->d_size);
-    AVR_LOG(NULL, LOG_DEBUG, "Loaded %zu .text at address 0x%x\n",
-            (unsigned int)data_text->d_size, firmware->flashbase);
+    // AVR_LOG(NULL, LOG_DEBUG, "Loaded %zu .text at address 0x%x\n",
+    //        (unsigned int)data_text->d_size, firmware->flashbase);
     offset += data_text->d_size;
   }
   if (data_data) {
     //	hdump("data", data_data->d_buf, data_data->d_size);
     memcpy(firmware->flash + offset, data_data->d_buf, data_data->d_size);
-    AVR_LOG(NULL, LOG_DEBUG, "Loaded %zu .data\n", data_data->d_size);
+    // AVR_LOG(NULL, LOG_DEBUG, "Loaded %zu .data\n", data_data->d_size);
     offset += data_data->d_size;
     firmware->datasize = data_data->d_size;
   }

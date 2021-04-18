@@ -135,6 +135,10 @@ void avr_terminate(avr_t *avr) {
 }
 
 void avr_reset(avr_t *avr) {
+  if (avr->run_once) {
+    printf("Exiting normally.\n");
+    exit(0);
+  }
   AVR_LOG(avr, LOG_TRACE, "%s reset\n", avr->mmcu);
 
   avr->state = cpu_Running;
@@ -154,6 +158,13 @@ void avr_reset(avr_t *avr) {
       port->reset(port);
     port = port->next;
   }
+
+  // Default values for the start of a new fuzzing test
+  avr->do_reset = 0;
+  avr->run_once = 0;
+  // Reset Sanitizer Data
+  avr->stack_return_address = -1;
+  avr->stackframe_min_sp = 1 << 16;
 }
 
 void avr_sadly_crashed(avr_t *avr, uint8_t signal) {
@@ -369,9 +380,6 @@ avr_t *avr_make_mcu_by_name(const char *name) {
   AVR_LOG(avr, LOG_TRACE,
           "Starting %s - flashend %04x ramend %04x e2end %04x\n", avr->mmcu,
           avr->flashend, avr->ramend, avr->e2end);
-  // Set default avr values
-  avr->stack_return_address = -1;
-  avr->do_reset = 0;
   return avr;
 }
 

@@ -12,7 +12,7 @@ PREFIX = ${DESTDIR}
 
 .PHONY: doc
 
-all:	build-simavr build-tests build-examples build-parts
+all:	build-simavr build-tests
 #all:	build-simavr build-examples build-parts
 
 build-simavr:

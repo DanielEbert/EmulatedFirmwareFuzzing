@@ -6,7 +6,7 @@
 #include <sim_avr.h>
 #include <stdio.h>
 
-void initialize_fuzzer(avr_t *avr, char *path_to_seeds) {
+void initialize_fuzzer(avr_t *avr, char *path_to_seeds, char *run_once_file) {
   Fuzzer *fuzzer = malloc(sizeof(Fuzzer));
   avr->fuzzer = fuzzer;
 
@@ -27,17 +27,21 @@ void initialize_fuzzer(avr_t *avr, char *path_to_seeds) {
   }
   fuzzer->previous_interesting_inputs = previous_interesting_inputs;
 
-  if (path_to_seeds != NULL) {
+  if (run_once_file != NULL) {
+    avr->run_once = 1;
+    add_seed_from_file(previous_interesting_inputs, run_once_file);
+  } else if (path_to_seeds != NULL) {
     initialize_seeds(previous_interesting_inputs, path_to_seeds);
+  } else {
+    fprintf(stderr,
+            "ERROR: Either run_once_file or path_to_seeds must not be NULL.\n");
   }
 
   generate_input(avr, fuzzer);
-  // printf("%.*s\n", (int)fuzzer->current_input->buf_len,
-  //       (char *)fuzzer->current_input->buf);
 
   // TODOE: refactor; malloc error checks
-  avr->shadow = calloc(1, 40960); // TODO: set the init ones to 1; change size
-  avr->shadow_propagation = calloc(sizeof(avr_flashaddr_t), 40960);
+  avr->shadow = calloc(1, 1 << 16); // TODO: set the init ones to 1; change size
+  avr->shadow_propagation = calloc(sizeof(avr_flashaddr_t), 1 << 16);
   // stack is towards the end.. lets just set the first addr to 1. note that
   // the registers are located there aswell, but since the standard lib code
   // is run at the start this is probably fine anyway

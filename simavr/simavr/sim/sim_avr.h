@@ -42,6 +42,7 @@ extern "C" {
 #include "sim_interrupts.h"
 #include "sim_irq.h"
 #include <collectc/cc_hashset.h>
+#include <collectc/cc_hashtable.h>
 
 typedef uint32_t avr_flashaddr_t;
 
@@ -160,7 +161,6 @@ typedef void (*avr_run_t)(struct avr_t *avr);
 #define AVR_FUSE_EXT 2
 
 typedef struct Patch_Side_Effects {
-  int skip_patched_instruction;
   int run_return_instruction;
 } Patch_Side_Effects;
 
@@ -376,6 +376,8 @@ typedef struct avr_t {
 
   // if set to 1: reset the emulator as soon as possible
   int do_reset;
+  // if set to 1: quit instead of reset the emulator
+  int run_once;
 
   Fuzzer *fuzzer;
   // reached edge coverage dictionary. key is struct Edge.
@@ -386,14 +388,16 @@ typedef struct avr_t {
 
   Patch_Side_Effects *patch_side_effects;
 
+  CC_HashTable *symbols;
+
   // Key is vaddr where bug was first noticed. Value is struct Crash
   CC_HashTable *unique_crashes;
 
   // For Sanitizers
-
   // Address of the saved return address on the current stack frame
   // Set to -1 by default, which means that no return address is on the stack
   int32_t stack_return_address;
+  avr_flashaddr_t stackframe_min_sp;
   uint8_t *shadow;
   avr_flashaddr_t *shadow_propagation;
 } avr_t;

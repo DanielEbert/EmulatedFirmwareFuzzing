@@ -18,7 +18,7 @@ jobs:
       - name: Install Dependencies
         run: sudo apt-get update && DEBIAN_FRONTEND=noninteractive sudo apt-get install -y gcc make gcc-avr avr-libc libelf-dev freeglut3 freeglut3-dev libglfw3-dev libgl1-mesa-dev libglu1-mesa-dev pkg-config libncurses-dev git cpputest python3
       - name: Install arduino-cli
-        run: cd /tmp && curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR=/usr/local/bin sh
+        run: cd /tmp && curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sudo BINDIR=/usr/local/bin sh
       - name: Install Collections-C Library Dependency
         run: cd .. && git clone https://github.com/srdja/Collections-C.git && cd Collections-C && mkdir build && cd build && cmake .. && make && make test && sudo make install && sudo ldconfig
       - name: Build simavr

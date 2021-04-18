@@ -30,6 +30,12 @@ SF not set at pc 558 with origin 79a
 Exiting normally.
 '''
   ),
+  (
+    'uninitialized4', b'''\
+SF not set at pc 65c with origin 64a
+Exiting normally.
+'''
+  ),
 ]
 
 for test_dir, required_msg in tests:

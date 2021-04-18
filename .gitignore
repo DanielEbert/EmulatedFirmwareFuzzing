@@ -3,3 +3,4 @@ simavr/lib
 *.swp
 current_run
 previous_runs
+__pycache__

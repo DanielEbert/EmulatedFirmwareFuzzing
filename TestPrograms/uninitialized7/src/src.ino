@@ -1,7 +1,15 @@
 
 void setup() {
   Serial.begin(9600);
+  setShadow();
   myFunction();
+}
+
+void setShadow() {
+  int a[200];
+  for (int i = 0; i < 200; i++) {
+    a[i] = i;
+  }
 }
 
 void myFunction() {

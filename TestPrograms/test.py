@@ -11,77 +11,22 @@ test_env['LD_PRELOAD'] = '../../simavr/simavr/sim/patches/reset_on_loop_call.c.s
 
 tests = [
   (
-    'uninitialized7', b'''\
-SF not set at pc 6a2 with origin 6d0
-SF not set at pc 6dc with origin 6d0
-Exiting normally.
-'''
+    'uninitialized7', b'SF not set'
   ),
   (
-    'stack_buffer_overflow', b'''\
-06a8 : Stack Smashing Detected
-SP 21ed, A=21f7 <= 41
-Exiting normally.
-'''
+    'stack_buffer_overflow', b'Stack Smashing Detected'
   ),
   (
-    'uninitialized6', b'''\
-SF not set at pc 558 with origin 79a
-Exiting normally.
-'''
+    'uninitialized6', b'SF not set'
   ),
   (
-    'uninitialized4', b'''\
-SF not set at pc 65c with origin 64a
-Exiting normally.
-'''
+    'uninitialized4', b'SF not set'
   ),
   (
-    'uninitialized2', b'''\
-SF not set at pc 7c8 with origin 7c0
-Exiting normally.
-'''
+    'uninitialized2', b'SF not set'
   ),
   (
-    'uninitialized', b'''\
-SF not set at pc 7a0 with origin 798
-SF not set at pc 990 with origin 7b0
-SF not set at pc 9ae with origin 7b0
-SF not set at pc 9b6 with origin 7b0
-SF not set at pc 9ae with origin 7b0
-SF not set at pc 9b6 with origin 7b0
-SF not set at pc 9ae with origin 7b0
-SF not set at pc 9b6 with origin 7b0
-SF not set at pc 9ae with origin 7b0
-SF not set at pc 9b6 with origin 7b0
-SF not set at pc 9ae with origin 7b0
-SF not set at pc 9b6 with origin 7b0
-SF not set at pc 9ae with origin 7b0
-SF not set at pc 9b6 with origin 7b0
-SF not set at pc 9ae with origin 7b0
-SF not set at pc 9b6 with origin 7b0
-SF not set at pc 9ae with origin 7b0
-SF not set at pc 9b6 with origin 7b0
-SF not set at pc 9ae with origin 7b0
-SF not set at pc 9b6 with origin 7b0
-SF not set at pc 9ae with origin 7b0
-SF not set at pc 9b6 with origin 7b0
-SF not set at pc 9ae with origin 7b0
-SF not set at pc 9b6 with origin 7b0
-SF not set at pc 9ae with origin 7b0
-SF not set at pc 9b6 with origin 7b0
-SF not set at pc 9ae with origin 7b0
-SF not set at pc 9b6 with origin 7b0
-SF not set at pc 9ae with origin 7b0
-SF not set at pc 9b6 with origin 7b0
-SF not set at pc 9ae with origin 7b0
-SF not set at pc 9b6 with origin 7b0
-SF not set at pc 9ae with origin 7b0
-SF not set at pc 9b6 with origin 7b0
-SF not set at pc 9bc with origin 7b0
-SF not set at pc 9c4 with origin 7b0
-Exiting normally.
-'''
+    'uninitialized', b'SF not set'
   ),
 ]
 

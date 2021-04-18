@@ -24,6 +24,12 @@ SP 21ed, A=21f7 <= 41
 Exiting normally.
 '''
   ),
+  (
+    'uninitialized6', b'''\
+SF not set at pc 558 with origin 79a
+Exiting normally.
+'''
+  ),
 ]
 
 for test_dir, required_msg in tests:

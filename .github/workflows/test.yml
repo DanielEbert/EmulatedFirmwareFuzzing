@@ -27,4 +27,4 @@ jobs:
       - name: Build patches
         run: cd simavr/sim/patches/ && make compile=reset_on_loop_call.c
       - name: Tests
-        run: cd ../TestPrograms && ./tests.py
+        run: cd ../TestPrograms && ./test.py

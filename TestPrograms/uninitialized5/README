@@ -1,0 +1,2 @@
+cant detect this at the moment
+maybe i could detect it if I detect the correct pattern, i.e. push 0 register in function prologue sets shadow map to 0

@@ -153,8 +153,6 @@ void avr_core_watch_write(avr_t *avr, uint16_t addr, uint8_t v) {
    * that is located higher on the stack than it should be. It's a sign of code
    * that has overrun it's stack frame and is munching on it's own return
    * address.
-   * EBERT: but this wont work if pointer is passed to function. e.g. to struct
-   * or class
    */
   if (avr->trace_data->stack_frame_index > 1 &&
       addr >
@@ -460,7 +458,7 @@ void avr_dump_state(avr_t *avr) {
   avr->trace_data->old[avr->trace_data->old_pci].sp = _avr_sp_get(avr);        \
   avr->trace_data->old_pci = (avr->trace_data->old_pci + 1) & (OLD_PC_SIZE - 1);
 
-#if AVR_STACK_WATCH
+//#if AVR_STACK_WATCH
 #define STACK_FRAME_PUSH()                                                     \
   avr->trace_data->stack_frame[avr->trace_data->stack_frame_index].pc =        \
       avr->pc;                                                                 \
@@ -470,10 +468,10 @@ void avr_dump_state(avr_t *avr) {
 #define STACK_FRAME_POP()                                                      \
   if (avr->trace_data->stack_frame_index > 0)                                  \
     avr->trace_data->stack_frame_index--;
-#else
-#define STACK_FRAME_PUSH()
-#define STACK_FRAME_POP()
-#endif
+//#else
+//#define STACK_FRAME_PUSH()
+//#define STACK_FRAME_POP()
+//#endif
 #else /* CONFIG_SIMAVR_TRACE */
 
 #define TRACE_JUMP()

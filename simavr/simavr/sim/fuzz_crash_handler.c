@@ -47,7 +47,7 @@ void crash_found(avr_t *avr, avr_flashaddr_t crashing_addr, uint8_t crash_id) {
     exit(1);
   }
 
-  send_crash(avr->server_connection, crash);
+  send_crash(avr, crash);
 }
 
 // Returns zero if keys are equal

@@ -161,6 +161,8 @@ void generate_input(avr_t *avr, Fuzzer *fuzzer) {
 }
 
 void mutate(void *buffer, size_t buf_len) {
+  // TODOE later i need to change this so that i can increase the buf_len.
+  // maybe just pass fuzzer->current_input here
   int num_mutations_1 = fast_random() % (NUM_MUTATIONS + 1);
   int num_mutations_2 = fast_random() % (NUM_MUTATIONS + 1);
   for (int i = 0; i < num_mutations_1; i++) {

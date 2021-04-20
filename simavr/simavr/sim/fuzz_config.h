@@ -6,11 +6,11 @@ extern "C" {
 
 // Limit the maximum length of seeds and generated inputs to MAX_INPUT_LENGTH
 // bytes.
-#define MAX_INPUT_LENGTH 4096
+#define MAX_INPUT_LENGTH 4096 // TODO: use this, include in patches
 
 // The average number of mutations applied is (NUM_MUTATIONS / 2) ^ 2 to
 // every generated input.
-#define NUM_MUTATIONS 0 // TODOE back to 5
+#define NUM_MUTATIONS 5
 
 #ifdef __cplusplus
 };

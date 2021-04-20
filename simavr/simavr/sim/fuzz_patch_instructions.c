@@ -102,6 +102,21 @@ uint32_t get_symbol_address(char *symbol_name, avr_t *avr) {
   return symbol_entry->addr;
 }
 
+void write_to_flashaddr(avr_flashaddr_t dst, void *src, size_t num_bytes,
+                        avr_t *avr) {
+  memcpy(avr->data + dst, src, num_bytes);
+
+  set_shadow_map(dst, num_bytes, 1, avr);
+}
+
+void set_shadow_map(avr_flashaddr_t start, size_t size, uint8_t value,
+                    avr_t *avr) {
+  avr_flashaddr_t end = start + size;
+  for (int i = start; i < end; i++) {
+    avr->shadow[i] = 1;
+  }
+}
+
 void noop(avr_t *avr) {}
 
 void print_current_input(void *arg) {
@@ -120,7 +135,7 @@ void test_patch_function(void *arg) {
 void fuzz_reset(void *arg) {
   avr_t *avr = (avr_t *)arg;
   // TODOE: remove printf here
-  printf("Resetting");
+  // printf("Resetting");
   evaluate_input(avr);
   generate_input(avr, avr->fuzzer);
   avr_reset(avr);

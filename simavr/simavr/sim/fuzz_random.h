@@ -12,7 +12,7 @@ extern "C" {
 // and comparable.
 // After developing this fuzzer, one can use a random seed every time,
 // e.g. via rand().
-uint64_t _rng_state = UINT64_C(0x10e0072601d190d);
+uint64_t _rng_state = UINT64_C(0x10e0072601d190e);
 
 uint64_t fast_random() {
 	_rng_state ^= _rng_state >> 12; // a

@@ -30,7 +30,8 @@ class Process_Messages:
     # decode and remove trailing newline
     # if not key exists: mkdir -p of basedir and cp src. check if src exists
     if not os.path.isabs(src_location) or not src_location[0] == '/':
-      assert False, f"Expected addr2line output {src_location} to be an absolute path"
+      print(f'no absolute path {src_location}')
+      return
     src_location_file, src_location_line = src_location.split(':')
     if not os.path.exists(src_location_file):
       return
@@ -47,22 +48,40 @@ class Process_Messages:
       f.write(f'1:{src_location_line}:\n')
     self.update_ui.on_new_edge()
 
-  def save_crashing_input(self, crash_ID: int, crashing_addr: int, inp: bytes):
+  def crashing_input(self, crash_ID, crash_addr, crash_input, stack_frames_pc):
+    # Found a new crash, write the stacktrace and the crashing input to a file
+    stack_frame_text = 'WARNING: use of uninitialzied value\n'
+    for i, pc in enumerate(stack_frames_pc):
+      stack_frame_text += f'    #{i} 0x{pc:x} in '
+      stack_frame_text += self.addr_to_src(
+          self.path_to_emulated_executable, pc, function_name=True
+      ).decode('UTF-8').strip()
+      stack_frame_text += '\n'
+
+    self.save_crashing_input(
+        crash_ID, crash_addr, crash_input, stack_frame_text)
+
+  def save_crashing_input(self, crash_ID: int, crash_addr: int, inp: bytes,
+                          stack_frame_text: str):
     prefix = ''
     if crash_ID == 1:
       prefix = 'stack_buffer_overflow'  # TODO: prefix is vaddr
     else:
       assert False, f'Unknown crashing input ID {crash_ID}'
-    # TODO: print addr in hex
-    filename = f'{prefix}_{crashing_addr:x}'
+    filename = f'{prefix}_{crash_addr:x}'
     file_path = os.path.join(CRASHING_INPUTS_DIR, filename)
     if os.path.exists(file_path):
       # print(f'Skipping duplicate crashing input file: {filename}')
       return
     with open(file_path, 'wb') as f:
       f.write(inp)
+    file_path += '_info'
+    with open(file_path, 'w') as f:
+      f.write(stack_frame_text)
 
-  def addr_to_src(self, path_to_binary: str, addr: int) -> str:
+  def addr_to_src(self, path_to_binary: str, addr: int, function_name=False) -> str:
     cmd = ['avr-addr2line', '-e', path_to_binary, hex(addr)]
+    if function_name:
+      cmd += ['--functions', '--pretty-print']
     out = subprocess.check_output(cmd, timeout=10)
     return out

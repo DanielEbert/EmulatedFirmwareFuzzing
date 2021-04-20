@@ -4,3 +4,5 @@ simavr/lib
 current_run
 previous_runs
 __pycache__
+/patches
+*.pyc

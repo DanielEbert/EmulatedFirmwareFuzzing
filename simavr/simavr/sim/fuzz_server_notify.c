@@ -59,17 +59,20 @@ void initialize_server_notify(avr_t *avr, char *filename) {
 }
 
 void send_target_info(Server_Connection *server_connection, char *filename) {
+  printf("filename: %s\n", filename);
   // Check if filename is a relative path
   if (filename[0] != '/') {
     // Prepend current working directory to filename
     char path_to_file[1024];
-    size_t filename_size = strlen(filename);
-    strncpy(filename, path_to_file, filename_size);
-    // getcwd string is null terminated
-    if (getcwd(path_to_file + filename_size, 1024 - filename_size) == NULL) {
+    if (getcwd(path_to_file, 1023) == NULL) {
       perror("getcwd Error ");
       exit(1);
     }
+    // getcwd string is null terminated
+    size_t path_size = strlen(path_to_file);
+    path_to_file[path_size] = '/';
+    path_size++;
+    strncpy(path_to_file + path_size, filename, 1023 - path_size);
     send_path_to_target_executable(server_connection, path_to_file);
   } else {
     send_path_to_target_executable(server_connection, filename);
@@ -88,18 +91,36 @@ int send_path_to_target_executable(Server_Connection *server_connection,
   return 0;
 }
 
-int send_crash(Server_Connection *server_connection, Crash *crash) {
-  // Body consists of: | crash_id | crashing_addr | crashing_input |
+int send_crash(avr_t *avr, Crash *crash) {
+  // TOODE: also for sanitizer: do some uniqueness checks. at least for
+  // sanitizer dictionary for ORIGIN AND CUR_PC, so i dont always send every
+  // time
+
+  // Body consists of: | crash_id | crashing_addr | crashing_input_length |
+  // | crashing_input | stack_frame_size | stack_frame_size * stack_frame_pc |
   // There is no need to send the crashing_input length here, since that is
   // always body_size - 1 - 4 bytes (crashing_addr has a size of 4 bytes)
+  Server_Connection *server_connection = avr->server_connection;
   char msg_ID = 2;
-  uint32_t body_size = 1 + 4 + crash->crashing_input->buf_len;
+  uint32_t crashing_input_length = crash->crashing_input->buf_len;
+  uint32_t stack_frame_index = avr->trace_data->stack_frame_index;
+  uint32_t body_size =
+      1 + 4 + 4 + crash->crashing_input->buf_len + 4 + stack_frame_index * 4;
   if (send_header(server_connection, msg_ID, body_size) < 0 ||
       send_raw(server_connection, &(crash->crash_id), 1) < 0 ||
       send_raw(server_connection, &(crash->crashing_addr), 4) < 0 ||
+      send_raw(server_connection, &crashing_input_length, 4) < 0 ||
       send_raw(server_connection, crash->crashing_input->buf,
-               crash->crashing_input->buf_len) < 0) {
+               crash->crashing_input->buf_len) < 0 ||
+      send_raw(server_connection, &stack_frame_index, 4) < 0) {
     return -1;
+  }
+  // Send program counters of stackframes
+  for (int i = 0; i < stack_frame_index; i++) {
+    if (send_raw(server_connection, &(avr->trace_data->stack_frame[i].pc), 4) <
+        0) {
+      return -1;
+    }
   }
   return 0;
 }

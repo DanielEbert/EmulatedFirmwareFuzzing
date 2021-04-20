@@ -137,7 +137,7 @@ struct avr_trace_data_t {
   } old[OLD_PC_SIZE]; // catches reset..
   int old_pci;
 
-#if AVR_STACK_WATCH
+//#if AVR_STACK_WATCH
 #define STACK_FRAME_SIZE 32
   // this records the call/ret pairs, to try to catch
   // code that munches the stack -under- their own frame
@@ -146,7 +146,7 @@ struct avr_trace_data_t {
     uint16_t sp;
   } stack_frame[STACK_FRAME_SIZE];
   int stack_frame_index;
-#endif
+  //#endif
 
   // DEBUG ONLY
   // keeps track of which registers gets touched by instructions

@@ -48,10 +48,23 @@ class Parser:
       #      f'{to_addr=} {addr_to_src(args.path_to_binary, to_addr)}')
       self.process_messages.update_coverage(from_addr, to_addr)
     elif msg_ID == 2:
-      crash_ID = int(body_raw[0])
-      crashing_addr = int.from_bytes(body_raw[1:5], byteorder='little')
-      crashing_input = body_raw[5:]
-      self.process_messages.save_crashing_input(
-          crash_ID, crashing_addr, crashing_input)
+      i = 0
+      crash_ID = int(body_raw[i])
+      i += 1
+      crash_addr = int.from_bytes(body_raw[i:i + 4], byteorder='little')
+      i += 4
+      input_length = int.from_bytes(body_raw[i:i + 4], byteorder='little')
+      i += 4
+      crash_input = body_raw[i:i + input_length]
+      i += input_length
+      stack_frame_size = int.from_bytes(body_raw[i:i + 4], byteorder='little')
+      i += 4
+      assert len(body_raw) - i == stack_frame_size * 4
+      # split every 4 bytes
+      stack_frames_pc = [int.from_bytes(
+          body_raw[j:j + 4], byteorder='little') for j in range(i, len(body_raw), 4)]
+      assert len(stack_frames_pc) == stack_frame_size
+      self.process_messages.crashing_input(
+          crash_ID, crash_addr, crash_input, stack_frames_pc)
     else:
       assert False, f"unknown {msg_ID=}"

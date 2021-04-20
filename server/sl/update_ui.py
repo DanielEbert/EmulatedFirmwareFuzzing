@@ -23,8 +23,9 @@ class Update_UI(threading.Thread):
     self.name = 'UI_thread'
     self.sleep_time = sleep_time
     self.new_coverage = False
+    self.move_old_data()
 
-  def move_old_data(self):  # TODO: invoke this
+  def move_old_data(self):
     if not os.path.exists(CURRENT_RUN_DIR):
       os.mkdir(CURRENT_RUN_DIR)
       os.mkdir(CRASHING_INPUTS_DIR)

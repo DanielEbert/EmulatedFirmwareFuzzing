@@ -74,9 +74,10 @@ void reading_past_end_of_flash_found(avr_t *avr,
 void crash_found(avr_t *avr, avr_flashaddr_t crashing_addr,
                  avr_flashaddr_t origin_addr, uint8_t crash_id) {
   // On non-recoverable crashes: reset
-  if (crash_id == 0) {
+  if (crash_id == 0 || crash_id == 3) {
     avr->do_reset = 1;
   }
+  // for crash_id 2, 4, 5 we call fuzz_reset immediately
   // Do not (immediately) reset on uninitialized value usages
 
   CrashKey *key = malloc(sizeof(CrashKey));

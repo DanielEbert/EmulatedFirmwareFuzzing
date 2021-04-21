@@ -138,7 +138,6 @@ void avr_core_watch_write(avr_t *avr, uint16_t addr, uint8_t v) {
             v);
     // crash(avr); Instead of crashing, we want to reset
     invalid_write_address_found(avr, avr->pc);
-    avr->do_reset = 1;
   }
 
   // Buffer Overflow Check

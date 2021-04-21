@@ -29,7 +29,7 @@ tests = [
     'uninitialized', b'SF flags not set', ['--run_once_with', 'Makefile']
   ),
   (
-    'timeout', b'Timeout found', ['--run_once_with', 'Makefile', '--timeout', '1300000']
+    'timeout', b'Timeout found', ['--run_once_with', 'Makefile', '--timeout', '13000']
   ),
 ]
 

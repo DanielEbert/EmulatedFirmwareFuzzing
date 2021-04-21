@@ -103,6 +103,18 @@ class Process_Messages:
     elif crash_ID == 1:
       prefix = 'uninitialized_value_used_at'
       filename = f'{prefix}_{crash_addr:x}_with_origin_{origin_addr:x}'
+    elif crash_ID == 2:
+      prefix = 'timeout'
+      filename = f'{prefix}_{crash_addr:x}'
+    elif crash_ID == 3:
+      prefix = 'invalid_write_address'
+      filename = f'{prefix}_{crash_addr:x}'
+    elif crash_ID == 4:
+      prefix = 'bad_jump_found'
+      filename = f'{prefix}_{crash_addr:x}'
+    elif crash_ID == 5:
+      prefix = 'reading_past_end_of_flash'
+      filename = f'{prefix}_{crash_addr:x}'
     else:
       assert False, f'Unknown crashing input ID {crash_ID}'
     file_path = os.path.join(CRASHING_INPUTS_DIR, filename)

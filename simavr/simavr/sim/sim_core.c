@@ -136,7 +136,9 @@ void avr_core_watch_write(avr_t *avr, uint16_t addr, uint8_t v) {
                      "Address %04x=%02x low registers\n" FONT_DEFAULT,
             avr->pc, _avr_sp_get(avr), _avr_flash_read16le(avr, avr->pc), addr,
             v);
-    crash(avr);
+    // crash(avr); Instead of crashing, we want to reset
+    invalid_write_address_found(avr, avr->pc);
+    avr->do_reset = 1;
   }
 
   // Buffer Overflow Check
@@ -603,8 +605,11 @@ run_one_again:
    */
   if (avr->pc >= avr->codeend || _avr_sp_get(avr) > avr->ramend) {
     //		avr->trace = 1;
-    STATE("RESET\n");
-    crash(avr);
+    // STATE("RESET\n");
+    // crash(avr); Instead of crashing, we want to reset
+    printf("Bad jump found at pc: %d\n", avr->pc);
+    bad_jump_found(avr, avr->pc);
+    fuzz_reset(avr);
   }
   avr->trace_data->touched[0] = avr->trace_data->touched[1] =
       avr->trace_data->touched[2] = 0;
@@ -614,9 +619,19 @@ run_one_again:
    * the end of the flash.
    */
   if (unlikely(avr->pc >= avr->flashend)) {
-    STATE("CRASH\n");
-    crash(avr);
+    // STATE("CRASH\n");
+    // crash(avr);
+    printf("Reading pas end of flash found at pc: %d\n", avr->pc);
+    reading_past_end_of_flash_found(avr, avr->pc);
+    fuzz_reset(avr);
     return 0;
+  }
+
+  // Check if we got timed out
+  if (avr->next_reset <= avr->cycle) {
+    printf("Timeout found at pc: %d\n", avr->pc);
+    timeout_found(avr, avr->pc);
+    fuzz_reset(avr);
   }
 
   avr_flashaddr_t new_pc = avr->pc + 2;
@@ -628,7 +643,6 @@ run_one_again:
     // Execute a 'ret' instruction. The callee must make sure that the
     // stack pointer points to a valid return address. This is, for example,
     // the case right at the start of a function.
-    // TODOE shadow bits check?
     avr->patch_side_effects->run_return_instruction = 0;
     new_pc = _avr_pop_addr(avr);
     side_effect_sets_new_pc = 1;

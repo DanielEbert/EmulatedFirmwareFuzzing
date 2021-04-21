@@ -164,8 +164,8 @@ Fuzzer::Fuzzer(UserCallback CB, InputCorpus &Corpus, MutationDispatcher &MD,
                FuzzingOptions Options)
     : CB(CB), Corpus(Corpus), MD(MD), Options(Options) {
 
-  if (EF->__sanitizer_set_death_callback)
-    EF->__sanitizer_set_death_callback(StaticDeathCallback);
+  // if (EF->__sanitizer_set_death_callback)
+  //   EF->__sanitizer_set_death_callback(StaticDeathCallback);
   assert(!F);
   F = this;
   TPC.ResetMaps();
@@ -278,9 +278,9 @@ void Fuzzer::StaticFileSizeExceedCallback() {
 
 void Fuzzer::CrashCallback() {
 
-  if (EF->__sanitizer_acquire_crash_state &&
-      !EF->__sanitizer_acquire_crash_state())
-    return;
+  //if (EF->__sanitizer_acquire_crash_state &&
+  //    !EF->__sanitizer_acquire_crash_state())
+  //  return;
   Printf("==%lu== ERROR: libFuzzer: deadly signal\n", GetPid());
   PrintStackTrace();
   Printf(
@@ -298,9 +298,9 @@ void Fuzzer::ExitCallback() {
 
   if (!RunningUserCallback)
     return;  // This exit did not come from the user callback
-  if (EF->__sanitizer_acquire_crash_state &&
-      !EF->__sanitizer_acquire_crash_state())
-    return;
+  // if (EF->__sanitizer_acquire_crash_state &&
+  //     !EF->__sanitizer_acquire_crash_state())
+  //   return;
   Printf("==%lu== ERROR: libFuzzer: fuzz target exited\n", GetPid());
   PrintStackTrace();
   Printf("SUMMARY: libFuzzer: fuzz target exited\n");
@@ -347,9 +347,9 @@ void Fuzzer::AlarmCallback() {
   if (Options.Verbosity >= 2) Printf("AlarmCallback %zd\n", Seconds);
   if (Seconds >= (size_t)Options.UnitTimeoutSec) {
 
-    if (EF->__sanitizer_acquire_crash_state &&
-        !EF->__sanitizer_acquire_crash_state())
-      return;
+    // if (EF->__sanitizer_acquire_crash_state &&
+    //     !EF->__sanitizer_acquire_crash_state())
+    //   return;
     Printf("ALARM: working on the last Unit for %zd seconds\n", Seconds);
     Printf("       and the timeout value is %d (use -timeout=N to change)\n",
            Options.UnitTimeoutSec);
@@ -367,9 +367,9 @@ void Fuzzer::AlarmCallback() {
 
 void Fuzzer::RssLimitCallback() {
 
-  if (EF->__sanitizer_acquire_crash_state &&
-      !EF->__sanitizer_acquire_crash_state())
-    return;
+   // if (EF->__sanitizer_acquire_crash_state &&
+   //     !EF->__sanitizer_acquire_crash_state())
+   //   return;
   Printf(
       "==%lu== ERROR: libFuzzer: out-of-memory (used: %zdMb; limit: %zdMb)\n",
       GetPid(), GetPeakRSSMb(), Options.RssLimitMb);

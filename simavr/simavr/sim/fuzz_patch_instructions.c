@@ -138,6 +138,13 @@ void fuzz_reset(void *arg) {
   }
   evaluate_input(avr);
   generate_input(avr, avr->fuzzer);
+
+  // Reset stack area of shadow map
+  uint32_t stack_top = 1 << 16;
+  for (avr_flashaddr_t i = avr->stackframe_min_sp; i < stack_top; i++) {
+    avr->shadow[i] = 0;
+  }
+
   avr_reset(avr);
 }
 

@@ -380,6 +380,11 @@ typedef struct avr_t {
   // if set to 1: quit instead of reset the emulator
   int run_once;
 
+  // The 'avr->cycle' value the last time fuzz_reset() was called'
+  uint64_t next_reset;
+  // Timeout after 'timeout' cycles.
+  uint64_t timeout;
+
   Fuzzer *fuzzer;
   // reached edge coverage dictionary. key is struct Edge.
   // if key-value pair exists: Edge reached

@@ -30,6 +30,7 @@
 #include "sim_hex.h"
 #include "sim_vcd_file.h"
 #include <collectc/cc_hashtable.h>
+#include <errno.h>
 #include <libgen.h>
 #include <signal.h>
 #include <stdio.h>
@@ -95,8 +96,13 @@ int main(int argc, char *argv[]) {
   const char *vcd_input = NULL;
   char *run_once_file = NULL;
   char *filename = NULL;
-  CC_HashTable *symbols = NULL;
   // symbol lookup
+  CC_HashTable *symbols = NULL;
+  // Default timeout is a very large value, which in practice means that there
+  // is no timeout.
+  uint64_t timeout = 1;
+  timeout <<= 62;
+  char *path_to_seeds_dir = NULL;
 
   if (argc == 1)
     display_usage(basename(argv[0]));
@@ -201,6 +207,13 @@ int main(int argc, char *argv[]) {
       loadBase = AVR_SEGMENT_OFFSET_EEPROM;
     } else if (!strcmp(argv[pi], "-ff")) {
       loadBase = AVR_SEGMENT_OFFSET_FLASH;
+    } else if (!strcmp(argv[pi], "--path_to_seeds_dir")) {
+      if (pi + 1 >= argc) {
+        fprintf(stderr, "%s: missing path argument for %s.\n", argv[0],
+                argv[pi]);
+        exit(1);
+      }
+      path_to_seeds_dir = argv[++pi];
     } else if (!strcmp(argv[pi], "--run_once_with")) {
       if (pi + 1 >= argc) {
         fprintf(stderr,
@@ -209,6 +222,20 @@ int main(int argc, char *argv[]) {
         exit(1);
       }
       run_once_file = argv[++pi];
+    } else if (!strcmp(argv[pi], "--timeout")) {
+      if (pi + 1 >= argc) {
+        fprintf(stderr, "%s: missing mandatory value argument for %s.\n",
+                argv[0], argv[pi]);
+        exit(1);
+      }
+      errno = 0;
+      char *i;
+      // The timeout value must be an unsigned integer.
+      timeout = strtoull(argv[++pi], &i, 10);
+      if (errno == ERANGE) {
+        perror("Timeout too large: ");
+        exit(1);
+      }
     } else if (argv[pi][0] != '-') {
       filename = argv[pi];
       char *suffix = strrchr(filename, '.');
@@ -262,6 +289,7 @@ int main(int argc, char *argv[]) {
     fprintf(stderr, "%s: AVR '%s' not known\n", argv[0], f.mmcu);
     exit(1);
   }
+  avr->timeout = timeout;
   avr_init(avr);
   avr->log = (log > LOG_TRACE ? LOG_TRACE : log);
   avr->trace = trace;
@@ -290,6 +318,13 @@ int main(int argc, char *argv[]) {
     avr_gdb_init(avr);
   }
 
+  if (run_once_file == NULL && path_to_seeds_dir == NULL) {
+    fprintf(
+        stderr,
+        "Missing required '--path_to_seeds_dir X' command line argument.\n");
+    exit(1);
+  }
+
   // make sure that the required symbols are set
   char *required_symbols[] = {"__bss_end"};
   size_t required_symbols_size =
@@ -309,8 +344,7 @@ int main(int argc, char *argv[]) {
   signal(SIGINT, sig_int);
   signal(SIGTERM, sig_int);
 
-  // TODO: seeds via arg
-  initialize_fuzzer(avr, "/home/user/EFF/seeds", run_once_file);
+  initialize_fuzzer(avr, path_to_seeds_dir, run_once_file);
   initialize_server_notify(avr, filename);
   initialize_patch_instructions(avr);
   initialize_coverage(avr);

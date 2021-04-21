@@ -45,13 +45,30 @@ void initialize_uninitialized_sanitizer(avr_t *avr) {
   }
 }
 
+void stack_buffer_overflow_found(avr_t *avr, avr_flashaddr_t crashing_addr) {
+  crash_found(avr, crashing_addr, 0, 0);
+}
+
 void uninitialized_value_used_found(avr_t *avr, avr_flashaddr_t crashing_addr,
                                     avr_flashaddr_t origin_addr) {
   crash_found(avr, crashing_addr, origin_addr, 1);
 }
 
-void stack_buffer_overflow_found(avr_t *avr, avr_flashaddr_t crashing_addr) {
-  crash_found(avr, crashing_addr, 0, 0);
+void timeout_found(avr_t *avr, avr_flashaddr_t crashing_addr) {
+  crash_found(avr, crashing_addr, 0, 2);
+}
+
+void invalid_write_address_found(avr_t *avr, avr_flashaddr_t crashing_addr) {
+  crash_found(avr, crashing_addr, 0, 3);
+}
+
+void bad_jump_found(avr_t *avr, avr_flashaddr_t crashing_addr) {
+  crash_found(avr, crashing_addr, 0, 4);
+}
+
+void reading_past_end_of_flash_found(avr_t *avr,
+                                     avr_flashaddr_t crashing_addr) {
+  crash_found(avr, crashing_addr, 0, 5);
 }
 
 void crash_found(avr_t *avr, avr_flashaddr_t crashing_addr,

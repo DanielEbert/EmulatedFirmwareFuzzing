@@ -3,7 +3,6 @@
 #include <stdio.h>
 
 void setup_patches(avr_t *avr) {
-  printf("Hi\n");
   patch_instruction(0x6bc, print_current_input, avr);
   patch_instruction(0x67e, fuzz_reset, avr);
 }

@@ -139,11 +139,12 @@ void avr_reset(avr_t *avr) {
     printf("Exiting normally.\n");
     exit(0);
   }
-  AVR_LOG(avr, LOG_TRACE, "%s reset\n", avr->mmcu);
+  // AVR_LOG(avr, LOG_TRACE, "%s reset\n", avr->mmcu);
 
   avr->state = cpu_Running;
-  for (int i = 0x20; i <= avr->ioend; i++)
+  for (int i = 0x20; i <= avr->ioend; i++) {
     avr->data[i] = 0;
+  }
   _avr_sp_set(avr, avr->ramend);
   avr->pc = avr->reset_pc; // Likely to be zero
   for (int i = 0; i < 8; i++)
@@ -162,6 +163,8 @@ void avr_reset(avr_t *avr) {
   // Default values for the start of a new fuzzing test
   avr->do_reset = 0;
   avr->run_once = 0;
+  avr->next_reset = avr->timeout + avr->cycle;
+  avr->trace_data->stack_frame_index = 0;
   // Reset Sanitizer Data
   avr->stack_return_address = -1;
   avr->stackframe_min_sp = 1 << 16;
@@ -170,7 +173,6 @@ void avr_reset(avr_t *avr) {
 void avr_sadly_crashed(avr_t *avr, uint8_t signal) {
   AVR_LOG(avr, LOG_ERROR, "%s\n", __FUNCTION__);
   avr->state = cpu_Stopped;
-  // EBERT: do not start gdb on crash
   // if (avr->gdb_port) {
   //  // enable gdb server, and wait
   //  if (!avr->gdb)

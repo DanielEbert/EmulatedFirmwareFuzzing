@@ -16,8 +16,8 @@ all:	build-simavr build-tests
 #all:	build-simavr build-examples build-parts
 
 build-simavr:
-	$(MAKE) -C simavr RELEASE=$(RELEASE)
-	$(MAKE) -C simavr/mutators/libfuzzer
+	$(MAKE) -C simavr RELEASE=$(RELEASE) -j$(nproc)
+	$(MAKE) -C simavr/mutators/libfuzzer -j$(nproc)
 
 build-tests: build-simavr
 	$(MAKE) -C tests RELEASE=$(RELEASE)

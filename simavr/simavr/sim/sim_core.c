@@ -888,7 +888,15 @@ run_one_again:
       _avr_set_r(avr, d, res);
       _avr_flags_znv0s(avr, res);
       SREG();
-      int sr = s[d] & s[r];
+      // we must use OR (|) here instead of AND (&) because if one operand
+      // is defined, at least 1 bit of the result is defined (this assumes that
+      // each operand has at least 1 bit that is 0. A operand with only '1's
+      // wouldn't make sense, the instruction would always be a noop). Imagine
+      // if the result has 1 bit that is defined and 7 bits that are
+      // undefined. Because we are working on a byte level, we must set the
+      // whole byte to defined because it is possible that the SUT only works
+      // with the 1 bit that is defined.
+      int sr = s[d] | s[r];
       s[d] = sr;
       s[SF] = sr;
       avr_flashaddr_t sp = sprop_2(sprop[d], sprop[r], !sr);
@@ -920,9 +928,9 @@ run_one_again:
       _avr_set_r(avr, d, res);
       _avr_flags_znv0s(avr, res);
       SREG();
-      int sr = s[d] & s[r];
+      int sr = s[d] | s[r];
       s[d] = sr;
-      s[SF] = sr; // is this always 1 or sr? should be sr but compiler optim?
+      s[SF] = sr;
       avr_flashaddr_t sp = sprop_2(sprop[d], sprop[r], !sr);
       sprop[d] = sprop[SF] = sp;
     } break;
@@ -970,7 +978,7 @@ run_one_again:
     _avr_set_r(avr, h, res);
     _avr_flags_sub_zns(avr, res, vh, k);
     SREG();
-    int sr = s[h] & s[SF];
+    int sr = s[h];
     s[h] = sr;
     s[SF] = sr;
     avr_flashaddr_t sp = sprop_2(sprop[h], sprop[SF], !sr);
@@ -985,7 +993,8 @@ run_one_again:
     _avr_set_r(avr, h, res);
     _avr_flags_znv0s(avr, res);
     SREG();
-    int sr = s[h] & s[SF];
+    // See AND instruction comment
+    int sr = 1;
     s[h] = sr;
     s[SF] = sr;
     avr_flashaddr_t sp = sprop_2(sprop[h], sprop[SF], !sr);
@@ -1000,7 +1009,8 @@ run_one_again:
     _avr_set_r(avr, h, res);
     _avr_flags_znv0s(avr, res);
     SREG();
-    int sr = s[h] & s[SF];
+    // See AND instruction comment
+    int sr = 1;
     s[h] = sr;
     s[SF] = sr;
     avr_flashaddr_t sp = sprop_2(sprop[h], sprop[SF], !sr);

@@ -92,23 +92,19 @@ int send_path_to_target_executable(Server_Connection *server_connection,
 }
 
 int send_crash(avr_t *avr, Crash *crash) {
-  // TOODE: also for sanitizer: do some uniqueness checks. at least for
-  // sanitizer dictionary for ORIGIN AND CUR_PC, so i dont always send every
-  // time
-
-  // Body consists of: | crash_id | crashing_addr | crashing_input_length |
-  // | crashing_input | stack_frame_size | stack_frame_size * stack_frame_pc |
-  // There is no need to send the crashing_input length here, since that is
-  // always body_size - 1 - 4 bytes (crashing_addr has a size of 4 bytes)
+  // Body consists of: | crash_id | crashing_addr | origin_addr |
+  // | crashing_input_length | crashing_input | stack_frame_size |
+  // stack_frame_size * stack_frame_pc |
   Server_Connection *server_connection = avr->server_connection;
   char msg_ID = 2;
   uint32_t crashing_input_length = crash->crashing_input->buf_len;
   uint32_t stack_frame_index = avr->trace_data->stack_frame_index;
-  uint32_t body_size =
-      1 + 4 + 4 + crash->crashing_input->buf_len + 4 + stack_frame_index * 4;
+  uint32_t body_size = 1 + 4 + 4 + 4 + crash->crashing_input->buf_len + 4 +
+                       stack_frame_index * 4;
   if (send_header(server_connection, msg_ID, body_size) < 0 ||
       send_raw(server_connection, &(crash->crash_id), 1) < 0 ||
       send_raw(server_connection, &(crash->crashing_addr), 4) < 0 ||
+      send_raw(server_connection, &(crash->origin_addr), 4) < 0 ||
       send_raw(server_connection, &crashing_input_length, 4) < 0 ||
       send_raw(server_connection, crash->crashing_input->buf,
                crash->crashing_input->buf_len) < 0 ||
@@ -125,12 +121,18 @@ int send_crash(avr_t *avr, Crash *crash) {
   return 0;
 }
 
-int send_coverage(Server_Connection *server_connection, Edge *edge) {
+int send_coverage(avr_t *avr, Edge *edge) {
+  // Body consists of: | from edge pc | to edge pc| input_length | input |
+  Server_Connection *server_connection = avr->server_connection;
   char msg_ID = 1;
-  uint32_t body_size = sizeof(edge->from) + sizeof(edge->to);
+  uint32_t input_length = avr->fuzzer->current_input->buf_len;
+  uint32_t body_size = sizeof(edge->from) + sizeof(edge->to) + 4 + input_length;
   if (send_header(server_connection, msg_ID, body_size) < 0 ||
       send_raw(server_connection, &edge->from, sizeof(edge->from)) < 0 ||
-      send_raw(server_connection, &edge->to, sizeof(edge->to)) < 0) {
+      send_raw(server_connection, &edge->to, sizeof(edge->to)) < 0 ||
+      send_raw(server_connection, &input_length, 4) < 0 ||
+      send_raw(server_connection, avr->fuzzer->current_input->buf,
+               input_length) < 0) {
     return -1;
   }
   return 0;

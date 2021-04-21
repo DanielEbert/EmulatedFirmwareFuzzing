@@ -45,16 +45,6 @@ void initialize_fuzzer(avr_t *avr, char *path_to_seeds, char *run_once_file) {
     fprintf(stderr,
             "ERROR: Either run_once_file or path_to_seeds must not be NULL.\n");
   }
-
-  // TODOE: refactor; malloc error checks
-  avr->shadow = calloc(1, 1 << 16); // TODO: set the init ones to 1; change size
-  avr->shadow_propagation = calloc(sizeof(avr_flashaddr_t), 1 << 16);
-  // stack is towards the end.. lets just set the first addr to 1. note that
-  // the registers are located there aswell, but since the standard lib code
-  // is run at the start this is probably fine anyway
-  for (int i = 0; i < 3000; i++) {
-    avr->shadow[i] = 1;
-  }
 }
 
 void initialize_seeds(CC_Array *previous_interesting_inputs,
@@ -119,7 +109,8 @@ void initialize_mutator(Fuzzer *fuzzer) {
   }
   libfuzzer_custom_init(fast_random());
 
-  void (*libfuzzer_custom_fuzz)(Input *) = dlsym(dh, "libfuzzer_custom_fuzz");
+  uint32_t (*libfuzzer_custom_fuzz)(Input *) =
+      dlsym(dh, "libfuzzer_custom_fuzz");
   if (!libfuzzer_custom_init) {
     fprintf(stderr, "ERROR: Symbol libfuzzer_custom_fuzz not found in "
                     "libfuzzer-mutator.so\n");
@@ -190,26 +181,28 @@ void generate_input(avr_t *avr, Fuzzer *fuzzer) {
   Input *input = get_random_previous_interesting_input(
       fuzzer->previous_interesting_inputs);
 
+  // printf("%s\n", (char *)(input->buf));
+
   // Override previous input with a randomly selected interesting previous
   // input.
+  memcpy(fuzzer->current_input->buf, input->buf, input->buf_len);
   fuzzer->current_input->buf_len = input->buf_len;
 
-  // TODOE:
-  fuzzer->libfuzzer_custom_fuzz(fuzzer->current_input);
+  // TODOE more mutators?
+  uint32_t input_size = fuzzer->libfuzzer_custom_fuzz(fuzzer->current_input);
+  fuzzer->current_input->buf_len = input_size;
   // mutate(fuzzer->current_input);
 
   avr->input_has_reached_new_coverage = 0;
 }
 
 void mutate(Input *input) {
-  // TODOE later i need to change this so that i can increase the buf_len.
-  // maybe just pass fuzzer->current_input here
+  // For now this is mutator is not used in production, only for testing.
+  // Using libfuzzer mutator instead
   int num_mutations_1 = fast_random() % (NUM_MUTATIONS + 1);
   int num_mutations_2 = fast_random() % (NUM_MUTATIONS + 1);
   for (int i = 0; i < num_mutations_1; i++) {
     for (int j = 0; j < num_mutations_2; j++) {
-      // TODOE here i can have another random that decides what to do e.g.
-      // flip, add, remove
       int index = fast_random() % input->buf_len;
       char new_value = fast_random();
       *(char *)(input->buf + index) = new_value;

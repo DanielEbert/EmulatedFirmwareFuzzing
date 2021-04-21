@@ -5,8 +5,6 @@
 #include "sim_avr.h"
 #include <stdio.h>
 
-// TODOE in this file helper functions for user
-
 void initialize_patch_instructions(avr_t *avr) {
   Patch_Side_Effects *patch_side_effects = malloc(sizeof(Patch_Side_Effects));
   patch_side_effects->run_return_instruction = 0;
@@ -121,7 +119,7 @@ void noop(avr_t *avr) {}
 
 void print_current_input(void *arg) {
   avr_t *avr = (avr_t *)arg;
-  printf("Current input:\n");
+  printf("Current input (Length %ld):\n", avr->fuzzer->current_input->buf_len);
   fwrite(avr->fuzzer->current_input->buf, avr->fuzzer->current_input->buf_len,
          1, stdout);
   printf("\n");

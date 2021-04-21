@@ -172,7 +172,7 @@ typedef struct Input {
 typedef struct Fuzzer {
   Input *current_input;
   CC_Array *previous_interesting_inputs;
-  void (*libfuzzer_custom_fuzz)(Input *);
+  uint32_t (*libfuzzer_custom_fuzz)(Input *);
 } Fuzzer;
 
 /*

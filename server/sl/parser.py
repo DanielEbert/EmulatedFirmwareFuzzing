@@ -39,19 +39,22 @@ class Parser:
       self.process_messages.set_path_to_emulated_executable(body)
     elif msg_ID == 1:
       # coverage event
-      # body consists of: from addr (32 bit), to addr (32 bit)
-      assert len(
-          body_raw) == 8, f"ERROR: expected msg_body size 8, got {len(body_raw)}"
+      # body consists of: from addr (32 bit), to addr (32 bit),
+      # input_size (32 bit), input (input_size bytes)
       from_addr = int.from_bytes(body_raw[:4], byteorder='little')
       to_addr = int.from_bytes(body_raw[4:8], byteorder='little')
-      # print(f'{from_addr=} {addr_to_src(args.path_to_binary, from_addr)}, '
-      #      f'{to_addr=} {addr_to_src(args.path_to_binary, to_addr)}')
+      input_len = int.from_bytes(body_raw[8:12], byteorder='little')
+      assert len(body_raw) - 12 == input_len
+      inp = body_raw[12:]
+      self.process_messages.save_previous_interesting_input(inp)
       self.process_messages.update_coverage(from_addr, to_addr)
     elif msg_ID == 2:
       i = 0
       crash_ID = int(body_raw[i])
       i += 1
       crash_addr = int.from_bytes(body_raw[i:i + 4], byteorder='little')
+      i += 4
+      origin_addr = int.from_bytes(body_raw[i:i + 4], byteorder='little')
       i += 4
       input_length = int.from_bytes(body_raw[i:i + 4], byteorder='little')
       i += 4
@@ -65,6 +68,6 @@ class Parser:
           body_raw[j:j + 4], byteorder='little') for j in range(i, len(body_raw), 4)]
       assert len(stack_frames_pc) == stack_frame_size
       self.process_messages.crashing_input(
-          crash_ID, crash_addr, crash_input, stack_frames_pc)
+          crash_ID, crash_addr, origin_addr, crash_input, stack_frames_pc)
     else:
       assert False, f"unknown {msg_ID=}"

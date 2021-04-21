@@ -144,7 +144,7 @@ void avr_core_watch_write(avr_t *avr, uint16_t addr, uint8_t v) {
     printf("%04x : Stack Smashing Detected\n"
            "SP %04x, A=%04x <= %02x\n",
            avr->pc, _avr_sp_get(avr), addr, v);
-    crash_found(avr, avr->pc, 1);
+    stack_buffer_overflow_found(avr, avr->pc);
   }
 
 #if AVR_STACK_WATCH
@@ -835,10 +835,17 @@ run_one_again:
         }
       }
       edge_triggered(avr, avr->pc, new_pc);
-      if (s[d] == 0 || s[r] == 0) { // TODOE sani
+      if (s[d] == 0) {
         printf(
-            "Operands in compare are not initialized at pc %x with origin %x\n",
-            avr->pc, sprop[SF]);
+            "Operand in compare is not initialized at pc %x with origin %x\n",
+            avr->pc, sprop[d]);
+        uninitialized_value_used_found(avr, avr->pc, sprop[d]);
+      }
+      if (s[r] == 0) {
+        printf(
+            "Operand in compare is not initialized at pc %x with origin %x\n",
+            avr->pc, sprop[r]);
+        uninitialized_value_used_found(avr, avr->pc, sprop[r]);
       }
     } break;
     case 0x1400: { // CP -- Compare -- 0001 01rd dddd rrrr
@@ -1145,27 +1152,28 @@ run_one_again:
         FALLTHROUGH
       case 0x9508: { // RET -- Return -- 1001 0101 0000 1000
         avr->stack_return_address = -1;
-        // sanitizer
+        // uninitialized sanitizer check
         uint16_t sp = _avr_sp_get(avr) + 1;
         int sr = 1;
         for (int i = 0; i < avr->address_size; i++, sp++) {
           sr &= s[sp];
+          if (s[sp] == 0) {
+            printf("Return Address is an uninitialized value. Return pc is: "
+                   "%d\n",
+                   avr->pc);
+            uninitialized_value_used_found(avr, avr->pc, sprop[sp]);
+          }
           s[sp] = 0;
           sprop[sp] = 0;
         }
-        // we could add a check here or somewhere else if stack ran into other
-        // sections like the .bss section
+        // TODOE we could add a check here or somewhere else if stack ran into
+        // other sections like the .bss section
         for (avr_flashaddr_t i = avr->stackframe_min_sp; i < sp; i++) {
           s[i] = 0;
           sprop[i] = 0;
         }
         avr->stackframe_min_sp = _avr_sp_get(avr);
 
-        if (sr == 0) { // TODOE sani
-          printf(
-              "Return Address from uninitialized value at return with pc %d\n",
-              avr->pc);
-        }
         new_pc = _avr_pop_addr(avr);
         cycle += 1 + avr->address_size;
         STATE("ret%s\n", opcode & 0x10 ? "i" : "");
@@ -1732,9 +1740,10 @@ run_one_again:
         new_pc = new_pc + (o << 1);
       }
       edge_triggered(avr, avr->pc, new_pc);
-      // sanitizer TODOE
       if (s[SF] == 0) {
-        printf("SF not set at pc %x with origin %x\n", avr->pc, sprop[SF]);
+        printf("SF flags not set at pc %x with origin %x\n", avr->pc,
+               sprop[SF]);
+        uninitialized_value_used_found(avr, avr->pc, sprop[SF]);
       }
     } break;
     case 0xf800:

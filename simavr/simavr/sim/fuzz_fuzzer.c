@@ -3,6 +3,7 @@
 #include "fuzz_config.h"
 #include "fuzz_random.h"
 #include <dirent.h>
+#include <dlfcn.h>
 #include <sim_avr.h>
 #include <stdio.h>
 
@@ -30,14 +31,20 @@ void initialize_fuzzer(avr_t *avr, char *path_to_seeds, char *run_once_file) {
   if (run_once_file != NULL) {
     avr->run_once = 1;
     add_seed_from_file(previous_interesting_inputs, run_once_file);
+    // This is not random because there is only 1 seed -- this is what we want.
+    Input *input = get_random_previous_interesting_input(
+        fuzzer->previous_interesting_inputs);
+    memcpy(fuzzer->current_input->buf, input->buf, input->buf_len);
+    fuzzer->current_input->buf_len = input->buf_len;
+    avr->input_has_reached_new_coverage = 0;
   } else if (path_to_seeds != NULL) {
     initialize_seeds(previous_interesting_inputs, path_to_seeds);
+    initialize_mutator(fuzzer);
+    generate_input(avr, fuzzer);
   } else {
     fprintf(stderr,
             "ERROR: Either run_once_file or path_to_seeds must not be NULL.\n");
   }
-
-  generate_input(avr, fuzzer);
 
   // TODOE: refactor; malloc error checks
   avr->shadow = calloc(1, 1 << 16); // TODO: set the init ones to 1; change size
@@ -89,6 +96,38 @@ void initialize_seeds(CC_Array *previous_interesting_inputs,
   // printf("X seed files added to the list of previous interesting inputs");
 
   // TODO: also skip ones that exceed max input size
+}
+
+void initialize_mutator(Fuzzer *fuzzer) {
+  // The idea for this initialization is from AFL++:
+  // https://github.com/AFLplusplus/AFLplusplus/blob/48cef3c74727407f82c44800d382737265fe65b4/src/afl-fuzz-mutators.c#L138
+  char *filename_TODOE =
+      "/home/user/EFF/simavr/simavr/mutators/libfuzzer/libfuzzer-mutator.so";
+  void *dh = dlopen(filename_TODOE, RTLD_NOW);
+  if (!dh) {
+    fprintf(stderr, "Failed to open custom mutator shared library: %s\n",
+            dlerror());
+    exit(1);
+  }
+
+  void (*libfuzzer_custom_init)(unsigned int) =
+      dlsym(dh, "libfuzzer_custom_init");
+  if (!libfuzzer_custom_init) {
+    fprintf(stderr, "ERROR: Symbol libfuzzer_custom_init not found in "
+                    "libfuzzer-mutator.so\n");
+    exit(1);
+  }
+  libfuzzer_custom_init(fast_random());
+
+  void (*libfuzzer_custom_fuzz)(Input *) = dlsym(dh, "libfuzzer_custom_fuzz");
+  if (!libfuzzer_custom_init) {
+    fprintf(stderr, "ERROR: Symbol libfuzzer_custom_fuzz not found in "
+                    "libfuzzer-mutator.so\n");
+    exit(1);
+  }
+
+  fuzzer->libfuzzer_custom_fuzz = libfuzzer_custom_fuzz;
+  // fuzzer->libfuzzer_custom_fuzz = mutate; // TODOE
 }
 
 void add_seed_from_file(CC_Array *previous_interesting_inputs,
@@ -151,16 +190,18 @@ void generate_input(avr_t *avr, Fuzzer *fuzzer) {
   Input *input = get_random_previous_interesting_input(
       fuzzer->previous_interesting_inputs);
 
-  // Override old current input with a randomly selected previous input.
-  memcpy(fuzzer->current_input->buf, input->buf, input->buf_len);
+  // Override previous input with a randomly selected interesting previous
+  // input.
   fuzzer->current_input->buf_len = input->buf_len;
 
-  mutate(fuzzer->current_input->buf, fuzzer->current_input->buf_len);
+  // TODOE:
+  fuzzer->libfuzzer_custom_fuzz(fuzzer->current_input);
+  // mutate(fuzzer->current_input);
 
   avr->input_has_reached_new_coverage = 0;
 }
 
-void mutate(void *buffer, size_t buf_len) {
+void mutate(Input *input) {
   // TODOE later i need to change this so that i can increase the buf_len.
   // maybe just pass fuzzer->current_input here
   int num_mutations_1 = fast_random() % (NUM_MUTATIONS + 1);
@@ -169,9 +210,9 @@ void mutate(void *buffer, size_t buf_len) {
     for (int j = 0; j < num_mutations_2; j++) {
       // TODOE here i can have another random that decides what to do e.g.
       // flip, add, remove
-      int index = fast_random() % buf_len;
+      int index = fast_random() % input->buf_len;
       char new_value = fast_random();
-      *(char *)(buffer + index) = new_value;
+      *(char *)(input->buf + index) = new_value;
     }
   }
 }

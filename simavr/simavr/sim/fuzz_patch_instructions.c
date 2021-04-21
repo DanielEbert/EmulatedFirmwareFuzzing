@@ -134,8 +134,10 @@ void test_patch_function(void *arg) {
 
 void fuzz_reset(void *arg) {
   avr_t *avr = (avr_t *)arg;
-  // TODOE: remove printf here
-  // printf("Resetting");
+  if (avr->run_once) {
+    printf("Exiting normally.\n");
+    exit(0);
+  }
   evaluate_input(avr);
   generate_input(avr, avr->fuzzer);
   avr_reset(avr);

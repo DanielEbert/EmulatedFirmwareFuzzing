@@ -121,6 +121,9 @@ LDFLAGS 	+= -lelf
 # link Collections-C Library
 LDFLAGS += -lcollectc
 
+# for dlopen so that we can access the custom mutator shared object files
+LDFLAGS += -ldl -pthread
+
 ifeq (${WIN}, Msys)
 LDFLAGS      += -lws2_32
 endif

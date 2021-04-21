@@ -11,22 +11,22 @@ test_env['LD_PRELOAD'] = '../../simavr/simavr/sim/patches/reset_on_loop_call.c.s
 
 tests = [
   (
-    'uninitialized7', b'SF not set'
+    'uninitialized7', b'SF flags not set'
   ),
   (
     'stack_buffer_overflow', b'Stack Smashing Detected'
   ),
   (
-    'uninitialized6', b'SF not set'
+    'uninitialized6', b'SF flags not set'
   ),
   (
-    'uninitialized4', b'SF not set'
+    'uninitialized4', b'SF flags not set'
   ),
   (
-    'uninitialized2', b'SF not set'
+    'uninitialized2', b'SF flags not set'
   ),
   (
-    'uninitialized', b'SF not set'
+    'uninitialized', b'SF flags not set'
   ),
 ]
 

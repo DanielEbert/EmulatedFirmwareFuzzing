@@ -17,7 +17,7 @@ void add_previous_interesting_input(CC_Array *previous_interesting_inputs,
                                     char *buf, size_t buf_len);
 Input *get_random_previous_interesting_input(CC_Array *inputs);
 void generate_input(avr_t *avr, Fuzzer *fuzzer);
-void mutate(Input *input);
+uint32_t mutate(Input *input);
 void evaluate_input(avr_t *avr);
 
 #ifdef __cplusplus

@@ -191,7 +191,6 @@ void generate_input(avr_t *avr, Fuzzer *fuzzer) {
   memcpy(fuzzer->current_input->buf, input->buf, input->buf_len);
   fuzzer->current_input->buf_len = input->buf_len;
 
-  // TODOE more mutators?
   uint32_t input_size = fuzzer->libfuzzer_custom_fuzz(fuzzer->current_input);
   fuzzer->current_input->buf_len = input_size;
   // mutate(fuzzer->current_input);
@@ -199,7 +198,7 @@ void generate_input(avr_t *avr, Fuzzer *fuzzer) {
   avr->input_has_reached_new_coverage = 0;
 }
 
-void mutate(Input *input) {
+uint32_t mutate(Input *input) {
   // For now this is mutator is not used in production, only for testing.
   // Using libfuzzer mutator instead
   int num_mutations_1 = fast_random() % (NUM_MUTATIONS + 1);
@@ -211,6 +210,7 @@ void mutate(Input *input) {
       *(char *)(input->buf + index) = new_value;
     }
   }
+  return input->buf_len;
 }
 
 void evaluate_input(avr_t *avr) {

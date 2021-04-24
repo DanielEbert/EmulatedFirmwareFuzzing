@@ -132,6 +132,7 @@ void test_patch_function(void *arg) {
 
 void fuzz_reset(void *arg) {
   avr_t *avr = (avr_t *)arg;
+  avr->fuzzer_stats.inputs_executed += 1;
   if (avr->run_once) {
     printf("Exiting normally.\n");
     exit(0);

@@ -138,6 +138,19 @@ int send_coverage(avr_t *avr, Edge *edge) {
   return 0;
 }
 
+int send_fuzzer_stats(avr_t *avr) {
+  Server_Connection *server_connection = avr->server_connection;
+  char msg_ID = 3;
+  uint32_t body_size = 4 * 10;
+  if (send_header(server_connection, msg_ID, body_size) < 0 ||
+      send_raw(server_connection, &avr->fuzzer_stats.inputs_executed, 4) < 0 ||
+      send_raw(server_connection, &avr->fuzzer_stats.total_crashes, 4) < 0 ||
+      send_raw(server_connection, &avr->fuzzer_stats.max_depth, 4) < 0) {
+    return -1;
+  }
+  return 0;
+}
+
 int send_header(Server_Connection *server_connection, char msg_ID,
                 uint32_t body_size) {
   if (send_raw(server_connection, &msg_ID, 1) < 0 ||

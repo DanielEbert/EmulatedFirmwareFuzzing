@@ -13,10 +13,26 @@ PREVIOUS_INTERESTING_INPUTS_DIR = '/home/user/EFF/current_run/previous_interesti
 OLD_RUNS_DIR = '/home/user/EFF/previous_runs'
 
 
+class Fuzzer_Stats:
+  def __init__(self):
+    self.inputs_executed = 0
+    self.previous_interesting_inputs = 0
+    self.edges_found = 0
+    self.total_crashes = 0
+    self.max_depth = 0
+    self.uninitialized_value_used_count = 0
+    self.timeout_count = 0
+    self.invalid_write_address_count = 0
+    self.bad_jump_count = 0
+    self.reading_past_end_of_flash_count = 0
+    self.stack_buffer_overfow_count = 0
+
+
 class Process_Messages:
   def __init__(self):
+    self.fuzzer_stats = Fuzzer_Stats()
     self.move_old_data()
-    self.update_ui = Update_UI(CURRENT_RUN_DIR)
+    self.update_ui = Update_UI(self, CURRENT_RUN_DIR)
     self.update_ui.start()
     self.path_to_emulated_executable = None
 
@@ -45,6 +61,7 @@ class Process_Messages:
     if self.path_to_emulated_executable is None:
       print("Warning: Client has not sent path_to_emulated_executable yet.")
       return
+    self.fuzzer_stats.edges_found += 1
     # looks more clear if we only mark the to_addr line
     src_location = self.addr_to_src(self.path_to_emulated_executable, to_addr)
     src_location = src_location.decode('UTF-8').strip()
@@ -78,6 +95,7 @@ class Process_Messages:
     if os.path.exists(file_path):
       # print(f'Skipping duplicate crashing input file: {filename}')
       return
+    self.fuzzer_stats.previous_interesting_inputs += 1
     with open(file_path, 'wb') as f:
       f.write(inp)
 
@@ -98,21 +116,27 @@ class Process_Messages:
                           inp: bytes, stack_frame_text: str):
     prefix = ''
     if crash_ID == 0:
+      self.fuzzer_stats.stack_buffer_overfow_count += 1
       prefix = 'stack_buffer_overflow'
       filename = f'{prefix}_{crash_addr:x}'
     elif crash_ID == 1:
+      self.fuzzer_stats.uninitialized_value_used_count += 1
       prefix = 'uninitialized_value_used_at'
       filename = f'{prefix}_{crash_addr:x}_with_origin_{origin_addr:x}'
     elif crash_ID == 2:
+      self.fuzzer_stats.timeout_count += 1
       prefix = 'timeout'
       filename = f'{prefix}_{crash_addr:x}'
     elif crash_ID == 3:
+      self.fuzzer_stats.invalid_write_address_count += 1
       prefix = 'invalid_write_address'
       filename = f'{prefix}_{crash_addr:x}'
     elif crash_ID == 4:
+      self.fuzzer_stats.bad_jump_count += 1
       prefix = 'bad_jump_found'
       filename = f'{prefix}_{crash_addr:x}'
     elif crash_ID == 5:
+      self.fuzzer_stats.reading_past_end_of_flash_count += 1
       prefix = 'reading_past_end_of_flash'
       filename = f'{prefix}_{crash_addr:x}'
     else:

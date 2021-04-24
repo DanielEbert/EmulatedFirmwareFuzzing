@@ -5,6 +5,7 @@ import seaborn as sns
 import pandas as pd
 import matplotlib.pyplot as plt
 import shutil
+import datetime
 
 
 class Update_UI(threading.Thread):
@@ -13,21 +14,32 @@ class Update_UI(threading.Thread):
   # list of tuples: (epoch, edges reached)
   edges_plot_data = []
 
-  def __init__(self, CURRENT_RUN_DIR, sleep_time=5):
+  def __init__(self, process_messages, CURRENT_RUN_DIR, sleep_time=5):
     threading.Thread.__init__(self)
     self.name = 'UI_thread'
+    self.process_messages = process_messages
     self.sleep_time = sleep_time
     self.new_coverage = False
     self.CURRENT_RUN_DIR = CURRENT_RUN_DIR
 
   def run(self):
     while True:
+      self.write_fuzzer_stats()
       if self.new_coverage:
         self.new_coverage = False
         self.run_gcovr()
       # always update coverage plot
       self.plot_coverage()
       time.sleep(self.sleep_time)
+
+  def write_fuzzer_stats(self):
+    fuzzer_stats_file_path = os.path.join(self.CURRENT_RUN_DIR, 'fuzzer_stats')
+    with open(fuzzer_stats_file_path, 'w') as f:
+      f.write('Date: {:%Y-%m-%d %H:%M:%S}\n'.format(datetime.datetime.now()))
+      for stat in [i for i in dir(self.process_messages.fuzzer_stats)
+                   if not i.startswith('__')]:
+        f.write(f'{stat}: {vars(self.process_messages.fuzzer_stats)[stat]}, ')
+      f.write('\n')
 
   def on_new_edge(self):
     self.new_coverage = True

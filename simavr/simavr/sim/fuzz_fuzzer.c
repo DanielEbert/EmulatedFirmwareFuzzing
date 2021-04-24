@@ -7,7 +7,8 @@
 #include <sim_avr.h>
 #include <stdio.h>
 
-void initialize_fuzzer(avr_t *avr, char *path_to_seeds, char *run_once_file) {
+void initialize_fuzzer(avr_t *avr, char *path_to_seeds, char *run_once_file,
+                       char *mutator_so_path) {
   Fuzzer *fuzzer = malloc(sizeof(Fuzzer));
   avr->fuzzer = fuzzer;
 
@@ -39,7 +40,7 @@ void initialize_fuzzer(avr_t *avr, char *path_to_seeds, char *run_once_file) {
     avr->input_has_reached_new_coverage = 0;
   } else if (path_to_seeds != NULL) {
     initialize_seeds(previous_interesting_inputs, path_to_seeds);
-    initialize_mutator(fuzzer);
+    initialize_mutator(fuzzer, mutator_so_path);
     generate_input(avr, fuzzer);
   } else {
     fprintf(stderr,
@@ -88,37 +89,39 @@ void initialize_seeds(CC_Array *previous_interesting_inputs,
   // TODO: also skip ones that exceed max input size
 }
 
-void initialize_mutator(Fuzzer *fuzzer) {
-  // The idea for this initialization is from AFL++:
+void initialize_mutator(Fuzzer *fuzzer, char *mutator_so_path) {
+  // The idea for this initialization (i.e. loading and calling the mutator
+  // functions from a .so file) is from AFL++:
   // https://github.com/AFLplusplus/AFLplusplus/blob/48cef3c74727407f82c44800d382737265fe65b4/src/afl-fuzz-mutators.c#L138
-  char *filename_TODOE =
-      "/home/user/EFF/simavr/simavr/mutators/libfuzzer/libfuzzer-mutator.so";
-  void *dh = dlopen(filename_TODOE, RTLD_NOW);
-  if (!dh) {
-    fprintf(stderr, "Failed to open custom mutator shared library: %s\n",
-            dlerror());
-    exit(1);
-  }
+  if (mutator_so_path != NULL) {
+    void *dh = dlopen(mutator_so_path, RTLD_NOW);
+    if (!dh) {
+      fprintf(stderr, "Failed to open custom mutator shared library: %s\n",
+              dlerror());
+      exit(1);
+    }
 
-  void (*libfuzzer_custom_init)(unsigned int) =
-      dlsym(dh, "libfuzzer_custom_init");
-  if (!libfuzzer_custom_init) {
-    fprintf(stderr, "ERROR: Symbol libfuzzer_custom_init not found in "
-                    "libfuzzer-mutator.so\n");
-    exit(1);
-  }
-  libfuzzer_custom_init(fast_random());
+    void (*libfuzzer_custom_init)(unsigned int) =
+        dlsym(dh, "libfuzzer_custom_init");
+    if (!libfuzzer_custom_init) {
+      fprintf(stderr, "ERROR: Symbol libfuzzer_custom_init not found in "
+                      "libfuzzer-mutator.so\n");
+      exit(1);
+    }
+    libfuzzer_custom_init(fast_random());
 
-  uint32_t (*libfuzzer_custom_fuzz)(Input *) =
-      dlsym(dh, "libfuzzer_custom_fuzz");
-  if (!libfuzzer_custom_init) {
-    fprintf(stderr, "ERROR: Symbol libfuzzer_custom_fuzz not found in "
-                    "libfuzzer-mutator.so\n");
-    exit(1);
-  }
+    uint32_t (*libfuzzer_custom_fuzz)(Input *) =
+        dlsym(dh, "libfuzzer_custom_fuzz");
+    if (!libfuzzer_custom_init) {
+      fprintf(stderr, "ERROR: Symbol libfuzzer_custom_fuzz not found in "
+                      "libfuzzer-mutator.so\n");
+      exit(1);
+    }
 
-  fuzzer->libfuzzer_custom_fuzz = libfuzzer_custom_fuzz;
-  // fuzzer->libfuzzer_custom_fuzz = mutate; // TODOE
+    fuzzer->libfuzzer_custom_fuzz = libfuzzer_custom_fuzz;
+  } else {
+    fuzzer->libfuzzer_custom_fuzz = mutate;
+  }
 }
 
 void add_seed_from_file(CC_Array *previous_interesting_inputs,

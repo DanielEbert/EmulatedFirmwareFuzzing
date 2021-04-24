@@ -465,7 +465,9 @@ void avr_dump_state(avr_t *avr) {
       avr->pc;                                                                 \
   avr->trace_data->stack_frame[avr->trace_data->stack_frame_index].sp =        \
       _avr_sp_get(avr);                                                        \
-  avr->trace_data->stack_frame_index++;
+  avr->trace_data->stack_frame_index++;                                        \
+  avr->fuzzer_stats.max_depth =                                                \
+      max(avr->fuzzer_stats.max_depth, avr->trace_data->stack_frame_index);
 #define STACK_FRAME_POP()                                                      \
   if (avr->trace_data->stack_frame_index > 0)                                  \
     avr->trace_data->stack_frame_index--;

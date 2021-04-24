@@ -105,6 +105,10 @@ int avr_init(avr_t *avr) {
   avr_reset(avr);
   avr_regbit_set(avr,
                  avr->reset_flags.porf); // by  default set to power-on reset
+  // Reset fuzz_stats
+  avr->fuzzer_stats.inputs_executed = 0;
+  avr->fuzzer_stats.total_crashes = 0;
+  avr->fuzzer_stats.max_depth = 0;
   return 0;
 }
 

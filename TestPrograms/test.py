@@ -9,27 +9,29 @@ cwd = os.getcwd()
 test_env = os.environ.copy()
 test_env['LD_PRELOAD'] = '../../simavr/simavr/sim/patches/reset_on_loop_call.c.so'
 
+default_flags = ['--run_once_with', 'Makefile', '--mutator_so_path', '/home/user/EFF/simavr/simavr/mutators/libfuzzer/libfuzzer-mutator.so']
+
 tests = [
   (
-    'uninitialized7', b'SF flags not set', ['--run_once_with', 'Makefile']
+    'uninitialized7', b'SF flags not set', default_flags
   ),
   (
-    'stack_buffer_overflow', b'Stack Smashing Detected', ['--run_once_with', 'Makefile']
+    'stack_buffer_overflow', b'Stack Smashing Detected', default_flags
   ),
   (
-    'uninitialized6', b'SF flags not set', ['--run_once_with', 'Makefile']
+    'uninitialized6', b'SF flags not set', default_flags
   ),
   (
-    'uninitialized4', b'SF flags not set', ['--run_once_with', 'Makefile']
+    'uninitialized4', b'SF flags not set', default_flags
   ),
   (
-    'uninitialized2', b'SF flags not set', ['--run_once_with', 'Makefile']
+    'uninitialized2', b'SF flags not set', default_flags
   ),
   (
-    'uninitialized', b'SF flags not set', ['--run_once_with', 'Makefile']
+    'uninitialized', b'SF flags not set', default_flags
   ),
   (
-    'timeout', b'Timeout found', ['--run_once_with', 'Makefile', '--timeout', '1300']
+    'timeout', b'Timeout found', default_flags + ['--timeout', '1300']
   ),
 ]
 

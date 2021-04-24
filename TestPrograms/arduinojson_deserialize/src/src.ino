@@ -16,7 +16,7 @@ void setup() {
     assert(ret2 <= 256);
   }
   //Serial.print("Y\n");
-  delay(100);
+  //delay(100);
 }
 
 void loop() {};

@@ -35,8 +35,8 @@ void invalid_write_address_found(avr_t *avr, avr_flashaddr_t crashing_addr);
 void bad_jump_found(avr_t *avr, avr_flashaddr_t crashing_addr);
 void reading_past_end_of_flash_found(avr_t *avr,
                                      avr_flashaddr_t crashing_addr);
-int crash_compare(const void *key1, const void *key2);
 void stack_buffer_overflow_found(avr_t *avr, avr_flashaddr_t crashing_addr);
+int crash_compare(const void *key1, const void *key2);
 void crash_found(avr_t *avr, avr_flashaddr_t crashing_vaddr, 
                  avr_flashaddr_t origin_addr, uint8_t crash_id);
 

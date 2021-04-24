@@ -103,6 +103,7 @@ int main(int argc, char *argv[]) {
   uint64_t timeout = 1;
   timeout <<= 62;
   char *path_to_seeds_dir = NULL;
+  char *mutator_so_path = NULL;
 
   if (argc == 1)
     display_usage(basename(argv[0]));
@@ -214,10 +215,17 @@ int main(int argc, char *argv[]) {
         exit(1);
       }
       path_to_seeds_dir = argv[++pi];
-    } else if (!strcmp(argv[pi], "--run_once_with")) {
+    } else if (!strcmp(argv[pi], "--mutator_so_path")) {
       if (pi + 1 >= argc) {
         fprintf(stderr,
-                "%s: missing mandatory path to input file argument for %s.\n",
+                "%s: missing mandatory path to mutaor.so file for %s.\n",
+                argv[0], argv[pi]);
+        exit(1);
+      }
+      mutator_so_path = argv[++pi];
+    } else if (!strcmp(argv[pi], "--run_once_with")) {
+      if (pi + 1 >= argc) {
+        fprintf(stderr, "%s: missing mandatory path to input file for %s.\n",
                 argv[0], argv[pi]);
         exit(1);
       }
@@ -344,7 +352,7 @@ int main(int argc, char *argv[]) {
   signal(SIGINT, sig_int);
   signal(SIGTERM, sig_int);
 
-  initialize_fuzzer(avr, path_to_seeds_dir, run_once_file);
+  initialize_fuzzer(avr, path_to_seeds_dir, run_once_file, mutator_so_path);
   initialize_server_notify(avr, filename);
   initialize_patch_instructions(avr);
   initialize_coverage(avr);

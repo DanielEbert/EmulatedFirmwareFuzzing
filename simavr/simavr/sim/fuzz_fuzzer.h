@@ -8,8 +8,9 @@
 extern "C" {
 #endif
 
-void initialize_fuzzer(avr_t *avr, char *path_to_seeds, char *run_once_file);
-void initialize_mutator(Fuzzer *fuzzer);
+void initialize_fuzzer(avr_t *avr, char *path_to_seeds, char *run_once_file, 
+                       char* mutator_so_path);
+void initialize_mutator(Fuzzer *fuzzer, char* mutator_so_path);
 void initialize_seeds(CC_Array *previous_interesting_inputs, char *path_to_seeds);
 void add_seed_from_file(CC_Array *previous_interesting_inputs, char *file_path);
 void add_previous_interesting_input(CC_Array *previous_interesting_inputs,

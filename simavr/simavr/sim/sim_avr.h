@@ -375,6 +375,16 @@ typedef struct avr_t {
 
   // The following is for fuzzing purposes
 
+  // The fuzzer_stats only include information that is not sent to the server
+  // already. For example, we sent the information about unique crashes to the
+  // server already, and for this reason the number of unique crashes is not
+  // included in the fuzzer_stats.
+  struct {
+    uint32_t inputs_executed;
+    uint32_t total_crashes;
+    uint32_t max_depth;
+  } fuzzer_stats;
+
   // if set to 1: reset the emulator as soon as possible
   int do_reset;
   // if set to 1: quit instead of reset the emulator

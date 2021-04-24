@@ -69,5 +69,18 @@ class Parser:
       assert len(stack_frames_pc) == stack_frame_size
       self.process_messages.crashing_input(
           crash_ID, crash_addr, origin_addr, crash_input, stack_frames_pc)
+    elif msg_ID == 3:
+      i = 0
+      inputs_executed = int.from_bytes(body_raw[i:i + 4], byteorder='little')
+      self.process_messages.fuzzer_stats.inputs_executed = inputs_executed
+      i += 4
+      total_crashes = int.from_bytes(body_raw[i:i + 4], byteorder='little')
+      self.process_messages.fuzzer_stats.total_crashes = total_crashes
+      i += 4
+      max_depth = int.from_bytes(body_raw[i:i + 4], byteorder='little')
+      self.process_messages.fuzzer_stats.max_depth = max_depth
+      i += 4
+      assert i == len(body_raw)
+
     else:
       assert False, f"unknown {msg_ID=}"

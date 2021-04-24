@@ -73,6 +73,7 @@ void reading_past_end_of_flash_found(avr_t *avr,
 
 void crash_found(avr_t *avr, avr_flashaddr_t crashing_addr,
                  avr_flashaddr_t origin_addr, uint8_t crash_id) {
+  avr->fuzzer_stats.total_crashes += 1;
   // On non-recoverable crashes: reset
   if (crash_id == 0 || crash_id == 3) {
     avr->do_reset = 1;

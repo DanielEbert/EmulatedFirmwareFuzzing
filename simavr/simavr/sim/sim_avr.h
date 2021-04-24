@@ -138,7 +138,7 @@ struct avr_trace_data_t {
   int old_pci;
 
 //#if AVR_STACK_WATCH
-#define STACK_FRAME_SIZE 32
+#define STACK_FRAME_SIZE 128
   // this records the call/ret pairs, to try to catch
   // code that munches the stack -under- their own frame
   struct {

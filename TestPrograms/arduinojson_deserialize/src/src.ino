@@ -2,6 +2,7 @@
 #include <assert.h>
 
 char fuzz_input[256];
+// 'volatile', otherwise compiler optimizes it out
 uint16_t fuzz_input_length;
 
 void setup() {

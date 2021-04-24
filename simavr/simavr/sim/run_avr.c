@@ -82,6 +82,32 @@ static void sig_int(int sign) {
   exit(0);
 }
 
+static void sig_crash(int sign) {
+  printf("ERROR: emulator caught signal. Storing current input to "
+         "emulator_crash_input file on disk and terminating\n");
+  if (avr) {
+    if (avr->fuzzer != NULL && avr->fuzzer->current_input != NULL &&
+        avr->fuzzer->current_input->buf != NULL) {
+      FILE *input_file = fopen("emulator_crash_input", "wb");
+      if (input_file == NULL) {
+        fprintf(stderr, "(1) Failed to write current input to file.\n");
+      } else {
+        size_t bytes_written =
+            fwrite(avr->fuzzer->current_input->buf, 1,
+                   avr->fuzzer->current_input->buf_len, input_file);
+        if (bytes_written != avr->fuzzer->current_input->buf_len) {
+          fprintf(stderr, "(2) Failed to write current input to file.\n");
+        }
+        fclose(input_file);
+      }
+    } else {
+      fprintf(stderr, "(3) Failed to write current input to file.\n");
+    }
+    avr_terminate(avr);
+  }
+  exit(0);
+}
+
 int main(int argc, char *argv[]) {
   elf_firmware_t f = {{0}};
   uint32_t f_cpu = 0;
@@ -351,6 +377,9 @@ int main(int argc, char *argv[]) {
 
   signal(SIGINT, sig_int);
   signal(SIGTERM, sig_int);
+
+  signal(SIGSEGV, sig_crash);
+  signal(SIGPIPE, sig_crash);
 
   initialize_fuzzer(avr, path_to_seeds_dir, run_once_file, mutator_so_path);
   initialize_server_notify(avr, filename);

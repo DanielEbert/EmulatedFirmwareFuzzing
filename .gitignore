@@ -6,3 +6,7 @@ previous_runs
 __pycache__
 /patches
 *.pyc
+*.hex
+*.bin
+speeduino
+marlin

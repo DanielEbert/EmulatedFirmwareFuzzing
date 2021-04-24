@@ -145,7 +145,7 @@ void avr_core_watch_write(avr_t *avr, uint16_t addr, uint8_t v) {
     printf("%04x : Stack Smashing Detected\n"
            "SP %04x, A=%04x <= %02x\n",
            avr->pc, _avr_sp_get(avr), addr, v);
-    stack_buffer_overflow_found(avr, avr->pc);
+    // TODOE: ignore for test stack_buffer_overflow_found(avr, avr->pc);
   }
 
 #if AVR_STACK_WATCH
@@ -717,12 +717,13 @@ run_one_again:
         int sr = s[d] & s[r] & s[SF];
         s[d] = sr;
         s[SF] = sr;
-        // is this a special case?: sbc R*, R*
-        // in such cases the actual register value doesnt matter, only s[SF]
-        // for now it works so i comment it out.
-        // if (vd == vr) {
-        //  s[d] = s[SF];
-        //}
+        // This special case exists: sbc R*, R*
+        // in such cases the actual register value doesnt matter
+        // which means we always set it to be defined. 
+        // I have seen this special case in code already.
+        if (vd == vr) {
+          s[d] = 1;// s[SF];
+        }
         avr_flashaddr_t pr = sprop_3(sprop[d], sprop[r], sprop[SF], !sr);
         sprop[d] = pr;
         sprop[SF] = pr;
@@ -1418,9 +1419,16 @@ run_one_again:
           s[d] = s[_avr_sp_get(avr)]; // order important
           sprop[d] = sprop_1(sprop[_avr_sp_get(avr)], !s[d]);
           s[_avr_sp_get(avr)] = 0;
-          sprop[_avr_sp_get(avr)] =
-              0; // it is fine that we dont set shadow prop right here. They are
-                 // set on next access.
+          // it is fine that we dont set shadow prop right here. They are
+          // set on next access.
+          sprop[_avr_sp_get(avr)] = 0; 
+          if (avr->stack_return_address != _avr_sp_get(avr)) {
+            // Reset stack_return_address if the return_address was stored 
+            // somewhere else (e.g. into a register via 'pop'). It is likely
+            // that we later 'push' the return value back on the stack and
+            // 'ret' uses the pushed original return address
+            avr->stack_return_address = -1;
+          }
         } break;
         case 0x920f: { // PUSH -- 1001 001d dddd 1111
           get_vd5(opcode);
@@ -1705,11 +1713,15 @@ run_one_again:
       STACK_FRAME_PUSH();
     } else {
       // If it is used to make space for stack variables, set shadow as
-      // undefined
+      // defined
+      // TODOE: I'll have to think about this. both arduinojson and marlin require this '1'
       uint16_t sp = _stack_return_address;
-      for (int i = 0; i < avr->address_size; i++, sp--) {
-        avr->shadow[sp] = 0;
-      }
+      avr->shadow[sp--] = 0;
+      avr->shadow[sp--] = 0;
+      avr->shadow[sp--] = 0; // maybe this is 1
+      //for (int i = 0; i < avr->address_size; i++, sp--) {
+      //  avr->shadow[sp] = 1;
+      //}
     }
     edge_triggered(avr, avr->pc, new_pc);
   } break;

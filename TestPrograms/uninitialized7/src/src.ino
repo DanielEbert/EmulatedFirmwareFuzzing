@@ -23,4 +23,8 @@ int x(int i) {
   return i + 5;
 }
 
-void loop(){}
+void loop() {
+  // We need a volatile variable and an assignment because otherwise loop()
+  // is not called due to compiler optimizations.
+  volatile int call_loop = 0;
+};

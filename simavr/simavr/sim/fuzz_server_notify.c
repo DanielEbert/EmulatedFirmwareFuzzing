@@ -141,7 +141,7 @@ int send_coverage(avr_t *avr, Edge *edge) {
 int send_fuzzer_stats(avr_t *avr) {
   Server_Connection *server_connection = avr->server_connection;
   char msg_ID = 3;
-  uint32_t body_size = 4 * 10;
+  uint32_t body_size = 4 * 3;
   if (send_header(server_connection, msg_ID, body_size) < 0 ||
       send_raw(server_connection, &avr->fuzzer_stats.inputs_executed, 4) < 0 ||
       send_raw(server_connection, &avr->fuzzer_stats.total_crashes, 4) < 0 ||

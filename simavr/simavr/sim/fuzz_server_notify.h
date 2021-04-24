@@ -24,6 +24,7 @@ int send_path_to_target_executable(Server_Connection *server_connection,
                                    char *filename);
 int send_crash(avr_t *avr, Crash *crash);
 int send_coverage(avr_t *avr, Edge *edge);
+int send_fuzzer_stats(avr_t *avr);
 int send_header(Server_Connection *server_connection, char msg_ID, uint32_t body_size);
 int send_raw(Server_Connection *server_connection, void *buf, uint32_t buf_len);
 

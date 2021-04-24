@@ -1,6 +1,7 @@
 
 #include "fuzz_patch_instructions.h"
 #include "fuzz_fuzzer.h"
+#include "fuzz_server_notify.h"
 #include "fuzz_util.h"
 #include "sim_avr.h"
 #include <stdio.h>
@@ -144,6 +145,11 @@ void fuzz_reset(void *arg) {
   uint32_t stack_top = 1 << 16;
   for (avr_flashaddr_t i = avr->stackframe_min_sp; i < stack_top; i++) {
     avr->shadow[i] = 0;
+  }
+
+  if (avr->fuzzer_stats.inputs_executed % 10000 ==
+      0) { // TODOE: instead use a timer and check current time
+    send_fuzzer_stats(avr);
   }
 
   avr_reset(avr);

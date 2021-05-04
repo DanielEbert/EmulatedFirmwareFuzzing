@@ -45,6 +45,7 @@ void initialize_fuzzer(avr_t *avr, char *path_to_seeds, char *run_once_file,
   } else {
     fprintf(stderr,
             "ERROR: Either run_once_file or path_to_seeds must not be NULL.\n");
+    exit(1);
   }
 }
 
@@ -138,6 +139,12 @@ void add_seed_from_file(CC_Array *previous_interesting_inputs,
   int cur;
   char *buffer = malloc(MAX_INPUT_LENGTH);
   do {
+    if (pos >= MAX_INPUT_LENGTH) {
+      printf("Skipping seed file %s. Reason: File content is too large. The "
+             "maximum input length is: %d.\n",
+             file_path, MAX_INPUT_LENGTH);
+      return;
+    }
     cur = fgetc(f);
     buffer[pos] = cur;
     pos++;

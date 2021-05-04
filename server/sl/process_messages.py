@@ -15,6 +15,7 @@ OLD_RUNS_DIR = '/home/user/EFF/previous_runs'
 
 class Fuzzer_Stats:
   def __init__(self):
+    self.fuzzer_start_time = None
     self.inputs_executed = 0
     self.previous_interesting_inputs = 0
     self.edges_found = 0
@@ -26,6 +27,9 @@ class Fuzzer_Stats:
     self.bad_jump_count = 0
     self.reading_past_end_of_flash_count = 0
     self.stack_buffer_overfow_count = 0
+    self.stats_update_time = None
+    # average of the last X seconds
+    self.average_inputs_executed_last_10_seconds = 0
 
 
 class Process_Messages:
@@ -54,7 +58,9 @@ class Process_Messages:
     os.mkdir(CRASHING_INPUTS_DIR)
     os.mkdir(PREVIOUS_INTERESTING_INPUTS_DIR)
 
-  def set_path_to_emulated_executable(self, path):
+  def initial_message(self, path):
+    self.fuzzer_stats.fuzzer_start_time = time.time()
+    self.fuzzer_stats.stats_update_time = time.time()
     self.path_to_emulated_executable = path
 
   def update_coverage(self, from_addr: int, to_addr: int):
@@ -150,6 +156,21 @@ class Process_Messages:
     file_path += '_info'
     with open(file_path, 'w') as f:
       f.write(stack_frame_text)
+
+  def update_fuzzer_stats(self, inputs_executed, total_crashes, max_depth):
+    assert self.fuzzer_stats.fuzzer_start_time != None
+    assert self.fuzzer_stats.stats_update_time != None
+    assert self.fuzzer_stats.inputs_executed <= inputs_executed
+    current_time = time.time()
+    assert current_time > self.fuzzer_stats.stats_update_time
+    time_delta = current_time - self.fuzzer_stats.stats_update_time
+    executed_inputs_delta = inputs_executed - self.fuzzer_stats.inputs_executed
+    self.fuzzer_stats.average_inputs_executed_last_10_seconds = executed_inputs_delta / time_delta
+
+    self.fuzzer_stats.stats_update_time = current_time
+    self.fuzzer_stats.inputs_executed = inputs_executed
+    self.fuzzer_stats.total_crashes = total_crashes
+    self.fuzzer_stats.max_depth = max_depth
 
   def addr_to_src(self, path_to_binary: str, addr: int, function_name=False) -> str:
     cmd = ['avr-addr2line', '-e', path_to_binary, hex(addr)]

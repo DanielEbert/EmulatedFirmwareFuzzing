@@ -126,6 +126,7 @@ void print_current_input(void *arg) {
   printf("\n");
 }
 
+// TODOE this doesnt work the way i expected?
 void test_patch_function(void *arg) {
   ((avr_t *)arg)->patch_side_effects->run_return_instruction = 1;
   printf("Hello from test_patch_function, arg: %ld\n", ((avr_t *)arg)->cycle);

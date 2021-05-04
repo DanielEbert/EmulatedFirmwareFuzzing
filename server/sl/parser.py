@@ -34,9 +34,10 @@ class Parser:
 
   def handle_body(self, msg_ID, body_raw):
     if msg_ID == 0:
-      # path to target executable (i.e. the executable that is emulated)
+      # Path to target executable (i.e. the executable that is emulated)
+      # This message is sent first on every run
       body = body_raw.decode('utf-8')
-      self.process_messages.set_path_to_emulated_executable(body)
+      self.process_messages.initial_message(body)
     elif msg_ID == 1:
       # coverage event
       # body consists of: from addr (32 bit), to addr (32 bit),
@@ -49,6 +50,7 @@ class Parser:
       self.process_messages.save_previous_interesting_input(inp)
       self.process_messages.update_coverage(from_addr, to_addr)
     elif msg_ID == 2:
+      # crash event
       i = 0
       crash_ID = int(body_raw[i])
       i += 1
@@ -70,17 +72,16 @@ class Parser:
       self.process_messages.crashing_input(
           crash_ID, crash_addr, origin_addr, crash_input, stack_frames_pc)
     elif msg_ID == 3:
+      # fuzzer statistics event
       i = 0
       inputs_executed = int.from_bytes(body_raw[i:i + 4], byteorder='little')
-      self.process_messages.fuzzer_stats.inputs_executed = inputs_executed
       i += 4
       total_crashes = int.from_bytes(body_raw[i:i + 4], byteorder='little')
-      self.process_messages.fuzzer_stats.total_crashes = total_crashes
       i += 4
       max_depth = int.from_bytes(body_raw[i:i + 4], byteorder='little')
-      self.process_messages.fuzzer_stats.max_depth = max_depth
       i += 4
       assert i == len(body_raw)
-
+      self.process_messages.update_fuzzer_stats(
+          inputs_executed, total_crashes, max_depth)
     else:
       assert False, f"unknown {msg_ID=}"

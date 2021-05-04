@@ -105,7 +105,7 @@ static void sig_crash(int sign) {
     }
     avr_terminate(avr);
   }
-  exit(0);
+  exit(1);
 }
 
 int main(int argc, char *argv[]) {
@@ -380,6 +380,8 @@ int main(int argc, char *argv[]) {
 
   signal(SIGSEGV, sig_crash);
   signal(SIGPIPE, sig_crash);
+  signal(SIGFPE, sig_crash);
+  signal(SIGXFSZ, sig_crash);
 
   initialize_fuzzer(avr, path_to_seeds_dir, run_once_file, mutator_so_path);
   initialize_server_notify(avr, filename);

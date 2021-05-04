@@ -38,7 +38,14 @@ class Update_UI(threading.Thread):
       f.write('Date: {:%Y-%m-%d %H:%M:%S}\n'.format(datetime.datetime.now()))
       for stat in [i for i in dir(self.process_messages.fuzzer_stats)
                    if not i.startswith('__')]:
-        f.write(f'{stat}: {vars(self.process_messages.fuzzer_stats)[stat]}, ')
+
+        value = vars(self.process_messages.fuzzer_stats)[stat]
+        if stat.endswith('_time'):
+          formatted_value = time.strftime(
+              "%a, %d %b %Y %H:%M:%S %Z", time.localtime(value))
+          f.write(f'{stat}: {formatted_value}\n')
+        else:
+          f.write(f'{stat}: {value}\n')
       f.write('\n')
 
   def on_new_edge(self):

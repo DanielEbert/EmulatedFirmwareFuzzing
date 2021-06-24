@@ -1154,7 +1154,6 @@ run_one_again:
           cycle += _avr_push_addr(avr, new_pc) - 1;
           // shadow is set in push_addr
           avr->stack_return_address = _stack_return_address;
-          exit(1); // TODOE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
         }
         new_pc = z << 1;
         cycle++;
@@ -1168,12 +1167,12 @@ run_one_again:
         sprop[SF] = 0;
         FALLTHROUGH
       case 0x9508: { // RET -- Return -- 1001 0101 0000 1000
-        // TODOE avr->stack_return_address = -1;
+        avr->stack_return_address = -1;
         // TODOE: high prio check
-        avr->stack_return_address =
-            avr->trace_data->stack_frame[avr->trace_data->stack_frame_index]
-                .sp -
-            avr->address_size;
+        // int cur_stack_ind = avr->trace_data->stack_frame_index;
+        // avr->stack_return_address =
+        //    avr->trace_data->stack_frame[cur_stack_ind].sp -
+        //    avr->address_size;
         // uninitialized sanitizer check
         uint16_t sp = _avr_sp_get(avr) + 1;
         int sr = 1;

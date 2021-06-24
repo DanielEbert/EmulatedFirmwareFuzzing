@@ -19,6 +19,9 @@ tests = [
     'stack_buffer_overflow', b'Stack Smashing Detected', default_flags
   ),
   (
+    'stack_buffer_overflow_after_ret', b'Stack Smashing Detected', default_flags
+  ),
+  (
     'uninitialized6', b'SF flags not set', default_flags
   ),
   (

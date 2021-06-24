@@ -9,8 +9,6 @@
 
 ### Sanitizer
 
-- AVR_STACK_WATCH did not work if pointer is passed to function. e.g. to struct or class and code does sth like s->a = 1; so what i needed to do is to only check if e.g. the return pointer is overriden. like sth that we really do not want to override. => Implemented via avr->stack_return_address, can talk about 'rcall .1 is used as a cheap "push 16 bits of room on the stack" special case
-
 - invalid opcode is decoded: invalid opcode is decoded
 - avr_core_watch_read and \_write +
 - bad instruction reading past the end of the flash

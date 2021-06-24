@@ -5,6 +5,7 @@
 #include "fuzz_util.h"
 #include "sim_avr.h"
 #include <stdio.h>
+#include <unistd.h>
 
 void initialize_patch_instructions(avr_t *avr) {
   Patch_Side_Effects *patch_side_effects = malloc(sizeof(Patch_Side_Effects));
@@ -136,7 +137,8 @@ void fuzz_reset(void *arg) {
   avr_t *avr = (avr_t *)arg;
   avr->fuzzer_stats.inputs_executed += 1;
   if (avr->run_once) {
-    printf("Exiting normally.\n");
+    printf("Exiting normally\n");
+    sleep(1);
     exit(0);
   }
   evaluate_input(avr);

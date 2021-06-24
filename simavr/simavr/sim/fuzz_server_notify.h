@@ -18,7 +18,7 @@ typedef struct Server_Connection {
   int connection_established;
 } Server_Connection;
 
-void initialize_server_notify(avr_t *avr, char *filename);
+void initialize_server_notify(avr_t *avr, int do_connect, char *filename);
 void send_target_info(Server_Connection *server_connection, char *filename);
 int send_path_to_target_executable(Server_Connection *server_connection,
                                    char *filename);

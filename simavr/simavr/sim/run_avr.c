@@ -352,13 +352,6 @@ int main(int argc, char *argv[]) {
     avr_gdb_init(avr);
   }
 
-  if (run_once_file == NULL && path_to_seeds_dir == NULL) {
-    fprintf(
-        stderr,
-        "Missing required '--path_to_seeds_dir X' command line argument.\n");
-    exit(1);
-  }
-
   // make sure that the required symbols are set
   char *required_symbols[] = {"__bss_end"};
   size_t required_symbols_size =
@@ -384,7 +377,7 @@ int main(int argc, char *argv[]) {
   signal(SIGXFSZ, sig_crash);
 
   initialize_fuzzer(avr, path_to_seeds_dir, run_once_file, mutator_so_path);
-  initialize_server_notify(avr, filename);
+  initialize_server_notify(avr, /*do_connect=*/run_once_file != NULL, filename);
   initialize_patch_instructions(avr);
   initialize_coverage(avr);
   initialize_crash_handler(avr);

@@ -23,7 +23,7 @@ ID 2: Information about a crash that includes the crashing input.
 ******************************/
 
 // Server must listen on localhost:8123
-void initialize_server_notify(avr_t *avr, char *filename) {
+void initialize_server_notify(avr_t *avr, int do_connect, char *filename) {
   if (filename == NULL) {
     fprintf(stderr, "Path to executable argument missing.\nExiting.\n");
     exit(1);
@@ -33,6 +33,11 @@ void initialize_server_notify(avr_t *avr, char *filename) {
   server_connection->connection_established = 0;
   server_connection->s = -1;
   avr->server_connection = server_connection;
+
+  if (do_connect != 0) {
+    printf("No connection initiated due to run_once\n");
+    return;
+  }
 
   struct sockaddr_in server;
   server_connection->s = socket(AF_INET, SOCK_STREAM, 0);

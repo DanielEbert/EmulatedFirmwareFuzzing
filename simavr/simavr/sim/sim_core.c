@@ -141,11 +141,12 @@ void avr_core_watch_write(avr_t *avr, uint16_t addr, uint8_t v) {
   }
 
   // Buffer Overflow Check
+  // TODOE: triple check like listing
   if (avr->stack_return_address == addr) {
     printf("%04x : Stack Smashing Detected\n"
            "SP %04x, A=%04x <= %02x\n",
            avr->pc, _avr_sp_get(avr), addr, v);
-    // TODOE: ignore for test stack_buffer_overflow_found(avr, avr->pc);
+    stack_buffer_overflow_found(avr, avr->pc);
   }
 
 #if AVR_STACK_WATCH
@@ -1152,6 +1153,7 @@ run_one_again:
         if (p) {
           int _stack_return_address = _avr_sp_get(avr);
           cycle += _avr_push_addr(avr, new_pc) - 1;
+          STACK_FRAME_PUSH();
           // shadow is set in push_addr
           avr->stack_return_address = _stack_return_address;
         }
@@ -1713,20 +1715,17 @@ run_one_again:
       avr->stack_return_address = _stack_return_address;
       TRACE_JUMP();
       STACK_FRAME_PUSH();
+      edge_triggered(avr, avr->pc, new_pc);
     } else {
       // If it is used to make space for stack variables, set shadow as
       // defined
       // TODOE: I'll have to think about this. both arduinojson and marlin
-      // require this '1'
+      // require this '0' (i write '1', i prob meant '0')
       uint16_t sp = _stack_return_address;
-      avr->shadow[sp--] = 0;
-      avr->shadow[sp--] = 0;
-      avr->shadow[sp--] = 0; // maybe this is 1
-      // for (int i = 0; i < avr->address_size; i++, sp--) {
-      //  avr->shadow[sp] = 1;
-      //}
+      for (int i = 0; i < avr->address_size; i++, sp--) {
+        avr->shadow[sp] = 0;
+      }
     }
-    edge_triggered(avr, avr->pc, new_pc);
   } break;
 
   case 0xe000: { // LDI Rd, K aka SER (LDI r, 0xff) -- 1110 kkkk dddd kkkk

@@ -9,6 +9,7 @@ cwd = os.getcwd()
 test_env = os.environ.copy()
 test_env['LD_PRELOAD'] = '../../simavr/simavr/sim/patches/reset_on_loop_call.c.so'
 
+# TODO: on remote i dont have mutator. doesnt matter for now
 default_flags = ['--run_once_with', 'Makefile', '--mutator_so_path', '/home/user/EFF/simavr/simavr/mutators/libfuzzer/libfuzzer-mutator.so']
 
 tests = [

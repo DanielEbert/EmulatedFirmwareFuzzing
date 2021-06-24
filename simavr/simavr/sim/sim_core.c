@@ -1167,12 +1167,11 @@ run_one_again:
         sprop[SF] = 0;
         FALLTHROUGH
       case 0x9508: { // RET -- Return -- 1001 0101 0000 1000
-        avr->stack_return_address = -1;
+        // avr->stack_return_address = -1;
         // TODOE: high prio check
-        // int cur_stack_ind = avr->trace_data->stack_frame_index;
-        // avr->stack_return_address =
-        //    avr->trace_data->stack_frame[cur_stack_ind].sp -
-        //    avr->address_size;
+        int cur_stack_ind = avr->trace_data->stack_frame_index;
+        avr->stack_return_address =
+            avr->trace_data->stack_frame[cur_stack_ind].sp - avr->address_size;
         // uninitialized sanitizer check
         uint16_t sp = _avr_sp_get(avr) + 1;
         int sr = 1;

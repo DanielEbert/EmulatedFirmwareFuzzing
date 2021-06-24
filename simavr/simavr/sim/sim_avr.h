@@ -410,9 +410,7 @@ typedef struct avr_t {
   CC_HashTable *unique_crashes;
 
   // For Sanitizers
-  // Address of the saved return address on the current stack frame
-  // Set to -1 by default, which means that no return address is on the stack
-  int32_t stack_return_address;
+  int disable_buffer_overflow_sanitizer;
   avr_flashaddr_t stackframe_min_sp;
   uint8_t *shadow;
   avr_flashaddr_t *shadow_propagation;

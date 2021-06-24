@@ -170,7 +170,7 @@ void avr_reset(avr_t *avr) {
   avr->next_reset = avr->timeout + avr->cycle;
   avr->trace_data->stack_frame_index = 0;
   // Reset Sanitizer Data
-  avr->stack_return_address = -1;
+  avr->disable_buffer_overflow_sanitizer = 0;
   avr->stackframe_min_sp = 1 << 16;
 }
 

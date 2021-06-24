@@ -141,8 +141,13 @@ void avr_core_watch_write(avr_t *avr, uint16_t addr, uint8_t v) {
   }
 
   // Buffer Overflow Check
-  // TODOE: triple check like listing
-  if (avr->stack_return_address == addr) {
+  // We add +1 here because .sp points to 1 below where return address is
+  // stored.
+  uint16_t stack_return_address =
+      avr->trace_data->stack_frame[avr->trace_data->stack_frame_index].sp + 1;
+  if (avr->disable_buffer_overflow_sanitizer != 0 &&
+      stack_return_address <= addr &&
+      addr <= stack_return_address + avr->address_size) {
     printf("%04x : Stack Smashing Detected\n"
            "SP %04x, A=%04x <= %02x\n",
            avr->pc, _avr_sp_get(avr), addr, v);
@@ -1151,11 +1156,8 @@ run_one_again:
           z |= avr->data[avr->eind] << 16;
         STATE("%si%s Z[%04x]\n", e ? "e" : "", p ? "call" : "jmp", z << 1);
         if (p) {
-          int _stack_return_address = _avr_sp_get(avr);
           cycle += _avr_push_addr(avr, new_pc) - 1;
           STACK_FRAME_PUSH();
-          // shadow is set in push_addr
-          avr->stack_return_address = _stack_return_address;
         }
         new_pc = z << 1;
         cycle++;
@@ -1169,11 +1171,6 @@ run_one_again:
         sprop[SF] = 0;
         FALLTHROUGH
       case 0x9508: { // RET -- Return -- 1001 0101 0000 1000
-        // avr->stack_return_address = -1;
-        // TODOE: high prio check
-        int cur_stack_ind = avr->trace_data->stack_frame_index;
-        avr->stack_return_address =
-            avr->trace_data->stack_frame[cur_stack_ind].sp - avr->address_size;
         // uninitialized sanitizer check
         uint16_t sp = _avr_sp_get(avr) + 1;
         int sr = 1;
@@ -1196,6 +1193,7 @@ run_one_again:
 
         new_pc = _avr_pop_addr(avr);
         cycle += 1 + avr->address_size;
+        avr->disable_buffer_overflow_sanitizer = 0;
         STATE("ret%s\n", opcode & 0x10 ? "i" : "");
         TRACE_JUMP();
         STACK_FRAME_POP();
@@ -1426,12 +1424,18 @@ run_one_again:
           // it is fine that we dont set shadow prop right here. They are
           // set on next access.
           sprop[_avr_sp_get(avr)] = 0;
-          if (avr->stack_return_address != _avr_sp_get(avr)) {
-            // Reset stack_return_address if the return_address was stored
-            // somewhere else (e.g. into a register via 'pop'). It is likely
-            // that we later 'push' the return value back on the stack and
-            // 'ret' uses the pushed original return address
-            avr->stack_return_address = -1;
+
+          uint16_t stack_return_address =
+              avr->trace_data->stack_frame[avr->trace_data->stack_frame_index]
+                  .sp +
+              1;
+          if (stack_return_address <= _avr_sp_get(avr) &&
+              _avr_sp_get(avr) <= stack_return_address + avr->address_size) {
+            // Disable the stack buffer overflow sanitizer if the return_address
+            // was stored somewhere else (e.g. into a register via 'pop'). It is
+            // likely that we later 'push' the return value back on the stack
+            // and 'ret' uses the pushed original return address
+            avr->disable_buffer_overflow_sanitizer = 1;
           }
         } break;
         case 0x920f: { // PUSH -- 1001 001d dddd 1111
@@ -1546,11 +1550,7 @@ run_one_again:
           a = (a << 16) | x;
           STATE("call 0x%06x\n", a);
           new_pc += 2;
-          int _stack_return_address = _avr_sp_get(avr);
           cycle += 1 + _avr_push_addr(avr, new_pc);
-          avr->stack_return_address = _stack_return_address;
-          // printf("-- Call cur_pc %d, next_pc %d, ret_pc %d\n", avr->pc, a <<
-          // 1, new_pc);
           new_pc = a << 1;
           TRACE_JUMP();
           STACK_FRAME_PUSH();
@@ -1712,7 +1712,6 @@ run_one_again:
     new_pc = (new_pc + o) % (avr->flashend + 1);
     // 'rcall .1' is used as a cheap "push 16 bits of room on the stack"
     if (o != 0) {
-      avr->stack_return_address = _stack_return_address;
       TRACE_JUMP();
       STACK_FRAME_PUSH();
       edge_triggered(avr, avr->pc, new_pc);

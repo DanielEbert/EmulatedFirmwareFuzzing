@@ -28,8 +28,11 @@ class Socket_Buffer_Queue:
           data = conn.recv(4096)
           if len(data) == 0:
             print("Connection was closed")
+            sock.close()
             # Kill Parent
-            os.kill(os.getppid(), signal.SIGTERM)
+            parent_pid = os.getppid()
+            if parent_pid != 1:
+              os.kill(parent_pid, signal.SIGTERM)
             os._exit(0)
           self.client_packages.put(data)
     finally:

@@ -141,28 +141,28 @@ void avr_core_watch_write(avr_t *avr, uint16_t addr, uint8_t v) {
   }
 
   // Buffer Overflow Check
-  // We add +1 here because .sp points to 1 below where return address is
-  // stored.
-  uint16_t stack_return_address =
-      avr->trace_data->stack_frame[avr->trace_data->stack_frame_index].sp + 1;
-  // printf("CHECK ON:%d : %d - %d --> %d\n",
-  //       avr->disable_buffer_overflow_sanitizer, stack_return_address, addr,
-  //       stack_return_address - addr);
   if (avr->disable_buffer_overflow_sanitizer == 0 &&
-      stack_return_address <= addr &&
-      addr <= stack_return_address + avr->address_size) {
-    printf("%04x : Stack Smashing Detected\n"
-           "SP %04x, A=%04x <= %02x\n",
-           avr->pc, _avr_sp_get(avr), addr, v);
-    stack_buffer_overflow_found(avr, avr->pc);
+      avr->trace_data->stack_frame_index > 0) {
+    // We add +1 here because .sp points to 1 below where return address is
+    // stored.
+    int frame_index = avr->trace_data->stack_frame_index - 1;
+    uint16_t stack_return_address =
+        avr->trace_data->stack_frame[frame_index].sp + 1;
+    if (stack_return_address <= addr &&
+        addr <= stack_return_address + avr->address_size) {
+      printf("%04x : Stack Smashing Detected\n"
+             "SP %04x, A=%04x <= %02x\n",
+             avr->pc, _avr_sp_get(avr), addr, v);
+      stack_buffer_overflow_found(avr, avr->pc);
+    }
   }
 
 #if AVR_STACK_WATCH
   /*
-   * this checks that the current "function" is not doctoring the stack frame
-   * that is located higher on the stack than it should be. It's a sign of code
-   * that has overrun it's stack frame and is munching on it's own return
-   * address.
+   * this checks that the current "function" is not doctoring the stack
+   * frame that is located higher on the stack than it should be. It's a
+   * sign of code that has overrun it's stack frame and is munching on it's
+   * own return address.
    */
   if (avr->trace_data->stack_frame_index > 1 &&
       addr >
@@ -780,7 +780,8 @@ run_one_again:
           uint8_t c = 0;
           T(const char *name = "";)
           switch (opcode & 0x88) {
-          case 0x00: // MULSU -- Multiply Signed Unsigned -- 0000 0011 0ddd 0rrr
+          case 0x00: // MULSU -- Multiply Signed Unsigned -- 0000 0011 0ddd
+                     // 0rrr
             res = ((uint8_t)avr->data[r]) * ((int8_t)avr->data[d]);
             c = (res >> 15) & 1;
             T(name = "mulsu";)
@@ -921,10 +922,10 @@ run_one_again:
       _avr_flags_znv0s(avr, res);
       SREG();
       // we must use OR (|) here instead of AND (&) because if one operand
-      // is defined, at least 1 bit of the result is defined (this assumes that
-      // each operand has at least 1 bit that is 0. A operand with only '1's
-      // wouldn't make sense, the instruction would always be a noop). Imagine
-      // if the result has 1 bit that is defined and 7 bits that are
+      // is defined, at least 1 bit of the result is defined (this assumes
+      // that each operand has at least 1 bit that is 0. A operand with only
+      // '1's wouldn't make sense, the instruction would always be a noop).
+      // Imagine if the result has 1 bit that is defined and 7 bits that are
       // undefined. Because we are working on a byte level, we must set the
       // whole byte to defined because it is possible that the SUT only works
       // with the 1 bit that is defined.
@@ -990,7 +991,8 @@ run_one_again:
     sprop[SF] = sprop_1(sprop[h], !s[h]);
   } break;
 
-  case 0x4000: { // SBCI -- Subtract Immediate With Carry -- 0100 kkkk hhhh kkkk
+  case 0x4000: { // SBCI -- Subtract Immediate With Carry -- 0100 kkkk hhhh
+                 // kkkk
     get_vh4_k8(opcode);
     uint8_t res = vh - k - avr->sreg[S_C];
     STATE("sbci %s[%02x], 0x%02x = %02x\n", avr_regname(h), vh, k, res);
@@ -1104,8 +1106,8 @@ run_one_again:
   } break;
 
   case 0x9000: {
-    /* this is an annoying special case, but at least these lines handle all the
-     * SREG set/clear opcodes */
+    /* this is an annoying special case, but at least these lines handle all
+     * the SREG set/clear opcodes */
     if ((opcode & 0xff0f) == 0x9408) {
       get_sreg_bit(opcode);
       STATE("%s%c\n", opcode & 0x0080 ? "cl" : "se", _sreg_bit_name[b]);
@@ -1119,8 +1121,8 @@ run_one_again:
         STATE("sleep\n");
         /* Don't sleep if there are interrupts about to be serviced.
          * Without this check, it was possible to incorrectly enter a state
-         * in which the cpu was sleeping and interrupts were disabled. For more
-         * details, see the commit message. */
+         * in which the cpu was sleeping and interrupts were disabled. For
+         * more details, see the commit message. */
         if (!avr_has_pending_interrupts(avr) || !avr->sreg[S_I])
           avr->state = cpu_Sleeping;
       } break;
@@ -1148,8 +1150,8 @@ run_one_again:
                      // "indirect"
       case 0x9509:   // ICALL -- Indirect Call to Subroutine -- 1001 0101 0000
                      // 1001
-      case 0x9519: { // EICALL -- Indirect Call to Subroutine -- 1001 0101 0001
-                     // 1001   bit 8 is "push pc"
+      case 0x9519: { // EICALL -- Indirect Call to Subroutine -- 1001 0101
+                     // 0001 1001   bit 8 is "push pc"
         int e = opcode & 0x10;
         int p = opcode & 0x100;
         if (e && !avr->eind)
@@ -1210,8 +1212,8 @@ run_one_again:
         s[0] = 1;
         sprop[0] = 0;
       } break;
-      case 0x95d8: { // ELPM -- Load Program Memory R0 <- (Z) -- 1001 0101 1101
-                     // 1000
+      case 0x95d8: { // ELPM -- Load Program Memory R0 <- (Z) -- 1001 0101
+                     // 1101 1000
         if (!avr->rampz)
           _avr_invalid_opcode(avr);
         uint32_t z = avr->data[R_ZL] | (avr->data[R_ZH] << 8) |
@@ -1251,8 +1253,8 @@ run_one_again:
           sprop[d] = 0;
         } break;
         case 0x9006:
-        case 0x9007: { // ELPM -- Extended Load Program Memory -- 1001 000d dddd
-                       // 01oo
+        case 0x9007: { // ELPM -- Extended Load Program Memory -- 1001 000d
+                       // dddd 01oo
           if (!avr->rampz)
             _avr_invalid_opcode(avr);
           uint32_t z = avr->data[R_ZL] | (avr->data[R_ZH] << 8) |
@@ -1428,16 +1430,16 @@ run_one_again:
           // set on next access.
           sprop[_avr_sp_get(avr)] = 0;
 
+          int frame_index = avr->trace_data->stack_frame_index - 1;
           uint16_t stack_return_address =
-              avr->trace_data->stack_frame[avr->trace_data->stack_frame_index]
-                  .sp +
-              1;
-          if (stack_return_address <= _avr_sp_get(avr) &&
+              avr->trace_data->stack_frame[frame_index].sp + 1;
+          if (frame_index != -1 && stack_return_address <= _avr_sp_get(avr) &&
               _avr_sp_get(avr) <= stack_return_address + avr->address_size) {
-            // Disable the stack buffer overflow sanitizer if the return_address
-            // was stored somewhere else (e.g. into a register via 'pop'). It is
-            // likely that we later 'push' the return value back on the stack
-            // and 'ret' uses the pushed original return address
+            // Disable the stack buffer overflow sanitizer if the
+            // return_address was stored somewhere else (e.g. into a register
+            // via 'pop'). It is likely that we later 'push' the return value
+            // back on the stack and 'ret' uses the pushed original return
+            // address
             avr->disable_buffer_overflow_sanitizer = 1;
           }
         } break;
@@ -1562,7 +1564,8 @@ run_one_again:
 
         default: {
           switch (opcode & 0xff00) {
-          case 0x9600: { // ADIW -- Add Immediate to Word -- 1001 0110 KKpp KKKK
+          case 0x9600: { // ADIW -- Add Immediate to Word -- 1001 0110 KKpp
+                         // KKKK
             get_vp2_k6(opcode);
             uint16_t res = vp + k;
             STATE("adiw %s:%s[%04x], 0x%02x\n", avr_regname(p),
@@ -1750,7 +1753,8 @@ run_one_again:
     case 0xf000:
     case 0xf200:
     case 0xf400:
-    case 0xf600: { // BRXC/BRXS -- All the SREG branches -- 1111 0Boo oooo osss
+    case 0xf600: { // BRXC/BRXS -- All the SREG branches -- 1111 0Boo oooo
+                   // osss
       int16_t o = ((int16_t)(opcode << 6)) >> 9; // offset
       uint8_t _s = opcode & 7;
       int set = (opcode & 0x0400) == 0; // this bit means BRXC otherwise BRXS
@@ -1788,8 +1792,8 @@ run_one_again:
       sprop[d] = sprop_2(sprop[v], sprop[SF], !alsos[d]);
     } break;
     case 0xfa00:
-    case 0xfb00: { // BST -- Bit Store into T from bit in Register -- 1111 101d
-                   // dddd 0bbb
+    case 0xfb00: { // BST -- Bit Store into T from bit in Register -- 1111
+                   // 101d dddd 0bbb
       get_vd5_s3(opcode)
           STATE("bst %s[%02x], 0x%02x\n", avr_regname(d), vd, 1 << s);
       avr->sreg[S_T] = (vd >> s) & 1;
@@ -1798,8 +1802,8 @@ run_one_again:
       sprop[SF] = sprop_1(sprop[d], !alsos[SF]);
     } break;
     case 0xfc00:
-    case 0xfe00: { // SBRS/SBRC -- Skip if Bit in Register is Set/Clear -- 1111
-                   // 11sd dddd 0bbb
+    case 0xfe00: { // SBRS/SBRC -- Skip if Bit in Register is Set/Clear --
+                   // 1111 11sd dddd 0bbb
       get_vd5_s3_mask(opcode) int set = (opcode & 0x0200) != 0;
       int branch = ((vd & mask) && set) || (!(vd & mask) && !set);
       STATE("%s %s[%02x], 0x%02x\t; Will%s branch\n", set ? "sbrs" : "sbrc",

@@ -1154,6 +1154,7 @@ run_one_again:
           cycle += _avr_push_addr(avr, new_pc) - 1;
           // shadow is set in push_addr
           avr->stack_return_address = _stack_return_address;
+          exit(1); // TODOE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
         }
         new_pc = z << 1;
         cycle++;

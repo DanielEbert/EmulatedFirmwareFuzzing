@@ -31,28 +31,11 @@
 - i need to use \_avr_set_ram if i want callbacks. sometimes iwant it, sometimes not
 - package server as service and autostart on OS start
 
-unique crashes. can do full stack trace (bad), or pc at crash
-on crash: reset
-
 ## patches
 
 ## Sanitizers
 
 - uninit testing in \_avr_get_ram maybe. still not sure if it works anyway. low prio probably
-- callback on malloc to look for heap out-of-bounds?. or i can say that malloc not used often in embedded or arduino so we dont care for it. malloc_heap_start and \_end show
-  - ! \_end is set to 0 which which makes malloc() assume the heap is below the stack. its actually a higher number than \_start
-  - \_\_malloc_margin will be considered if the heap is operating below the stack
-  - https://www.nongnu.org/avr-libc/user-manual/malloc.html shows RAM map
-- can we error on read and writes below stack pointer? if malloc is used it think this wont work. can we check if
-- TODO: find tests that catch these, and for implemented sanitizers: send input and reason; and reset
-- check what 'sanitizers' gamozo uses
-- we can reuse 'avr_core_watch_read' and ...write, also check AVR_STACK_WATCH and enable it by default. say avr_stack_watch for buffer overflows, and make test for that. simple strcpy
-- can i check if we call uninitialized code? will likely be handled by invalid opcode i assume. can write that this is an option tought, but i didnt think its worth the time
-- load from data space before initialized? also there is the typical for ... != END
-- check most common errors (esp. memory errors) and check if we can catch them. check what sanitizers check for. i cant check for heap overflow currenly (if heap exists at all)
-- check fuzzer most found from google
-- check integer overflow (add instr? how is sanitizer for that implemented?)
-- invalid frees? use the built in symbol stuff to figure out vaddr of malloc and free?
 
 ## Visualization
 

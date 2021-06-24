@@ -719,10 +719,10 @@ run_one_again:
         s[SF] = sr;
         // This special case exists: sbc R*, R*
         // in such cases the actual register value doesnt matter
-        // which means we always set it to be defined. 
+        // which means we always set it to be defined.
         // I have seen this special case in code already.
         if (vd == vr) {
-          s[d] = 1;// s[SF];
+          s[d] = 1; // s[SF];
         }
         avr_flashaddr_t pr = sprop_3(sprop[d], sprop[r], sprop[SF], !sr);
         sprop[d] = pr;
@@ -1167,7 +1167,12 @@ run_one_again:
         sprop[SF] = 0;
         FALLTHROUGH
       case 0x9508: { // RET -- Return -- 1001 0101 0000 1000
-        avr->stack_return_address = -1;
+        // TODOE avr->stack_return_address = -1;
+        // TODOE: high prio check
+        avr->stack_return_address =
+            avr->trace_data->stack_frame[avr->trace_data->stack_frame_index]
+                .sp -
+            avr->address_size;
         // uninitialized sanitizer check
         uint16_t sp = _avr_sp_get(avr) + 1;
         int sr = 1;
@@ -1182,8 +1187,6 @@ run_one_again:
           s[sp] = 0;
           sprop[sp] = 0;
         }
-        // TODOE we could add a check here or somewhere else if stack ran into
-        // other sections like the .bss section
         for (avr_flashaddr_t i = avr->stackframe_min_sp; i < sp; i++) {
           s[i] = 0;
           sprop[i] = 0;
@@ -1421,9 +1424,9 @@ run_one_again:
           s[_avr_sp_get(avr)] = 0;
           // it is fine that we dont set shadow prop right here. They are
           // set on next access.
-          sprop[_avr_sp_get(avr)] = 0; 
+          sprop[_avr_sp_get(avr)] = 0;
           if (avr->stack_return_address != _avr_sp_get(avr)) {
-            // Reset stack_return_address if the return_address was stored 
+            // Reset stack_return_address if the return_address was stored
             // somewhere else (e.g. into a register via 'pop'). It is likely
             // that we later 'push' the return value back on the stack and
             // 'ret' uses the pushed original return address
@@ -1714,12 +1717,13 @@ run_one_again:
     } else {
       // If it is used to make space for stack variables, set shadow as
       // defined
-      // TODOE: I'll have to think about this. both arduinojson and marlin require this '1'
+      // TODOE: I'll have to think about this. both arduinojson and marlin
+      // require this '1'
       uint16_t sp = _stack_return_address;
       avr->shadow[sp--] = 0;
       avr->shadow[sp--] = 0;
       avr->shadow[sp--] = 0; // maybe this is 1
-      //for (int i = 0; i < avr->address_size; i++, sp--) {
+      // for (int i = 0; i < avr->address_size; i++, sp--) {
       //  avr->shadow[sp] = 1;
       //}
     }

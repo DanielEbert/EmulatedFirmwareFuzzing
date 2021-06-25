@@ -105,26 +105,24 @@ void initialize_mutator(Fuzzer *fuzzer, char *mutator_so_path) {
       exit(1);
     }
 
-    void (*libfuzzer_custom_init)(unsigned int) =
-        dlsym(dh, "libfuzzer_custom_init");
-    if (!libfuzzer_custom_init) {
-      fprintf(stderr, "ERROR: Symbol libfuzzer_custom_init not found in "
+    void (*initialize_mutator)(unsigned int) = dlsym(dh, "initialize_mutator");
+    if (!initialize_mutator) {
+      fprintf(stderr, "ERROR: Symbol initialize_mutator not found in "
                       "libfuzzer-mutator.so\n");
       exit(1);
     }
-    libfuzzer_custom_init(fast_random());
+    initialize_mutator(fast_random());
 
-    uint32_t (*libfuzzer_custom_fuzz)(Input *) =
-        dlsym(dh, "libfuzzer_custom_fuzz");
-    if (!libfuzzer_custom_init) {
-      fprintf(stderr, "ERROR: Symbol libfuzzer_custom_fuzz not found in "
+    uint32_t (*mutator_mutate)(Input *) = dlsym(dh, "mutator_mutate");
+    if (!initialize_mutator) {
+      fprintf(stderr, "ERROR: Symbol mutator_mutate not found in "
                       "libfuzzer-mutator.so\n");
       exit(1);
     }
 
-    fuzzer->libfuzzer_custom_fuzz = libfuzzer_custom_fuzz;
+    fuzzer->mutator_mutate = mutator_mutate;
   } else {
-    fuzzer->libfuzzer_custom_fuzz = mutate;
+    fuzzer->mutator_mutate = mutate;
   }
 }
 
@@ -201,7 +199,7 @@ void generate_input(avr_t *avr, Fuzzer *fuzzer) {
   memcpy(fuzzer->current_input->buf, input->buf, input->buf_len);
   fuzzer->current_input->buf_len = input->buf_len;
 
-  uint32_t input_size = fuzzer->libfuzzer_custom_fuzz(fuzzer->current_input);
+  uint32_t input_size = fuzzer->mutator_mutate(fuzzer->current_input);
   fuzzer->current_input->buf_len = input_size;
   // mutate(fuzzer->current_input);
 

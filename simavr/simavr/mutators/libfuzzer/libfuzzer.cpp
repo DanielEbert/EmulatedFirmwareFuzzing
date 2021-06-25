@@ -24,11 +24,11 @@ extern "C" int dummy(const uint8_t *Data, size_t Size) {
 
 }
 
-extern "C" void libfuzzer_custom_init(unsigned int seed) {
+extern "C" void initialize_mutator(unsigned int seed) {
   LLVMFuzzerMyInit(dummy, seed);
 }
 
-extern "C" uint32_t libfuzzer_custom_fuzz(Input *input) {
+extern "C" uint32_t mutator_mutate(Input *input) {
   uint32_t ret = LLVMFuzzerMutate((uint8_t *)input->buf, input->buf_len, MAX_INPUT_LENGTH);
   return ret;
 }

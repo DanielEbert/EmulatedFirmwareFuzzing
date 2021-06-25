@@ -40,11 +40,10 @@ void initialize_patch_instructions(avr_t *avr) {
 
 void setup_patches(avr_t *avr) { printf("Using no patches.\n"); }
 
-int patch_instruction(avr_flashaddr_t vaddr, void *function_pointer,
-                      void *arg) {
+int patch_instruction(avr_flashaddr_t vaddr, void *patch_pointer, void *arg) {
   patched_instruction *p = get_or_create_patched_instruction(vaddr);
 
-  DL_APPEND(p->function_patches, create_function_patch(function_pointer, arg));
+  DL_APPEND(p->patches, create_function_patch(patch_pointer, arg));
 
   return 0;
 }
@@ -56,19 +55,19 @@ patched_instruction *get_or_create_patched_instruction(avr_flashaddr_t key) {
   // Create empty list as value at :key: if no value exists yet
   if (entry == NULL) {
     // Set empty list as value for key target_vaddr in vaddr_hooks_table
-    function_patch *patch = NULL;
+    Patch *patch = NULL;
     entry = malloc(sizeof(patched_instruction));
     entry->vaddr = key;
-    entry->function_patches = patch;
+    entry->patches = patch;
     HASH_ADD_UINT32(patched_instructions, vaddr, entry);
   }
 
   return entry;
 }
 
-function_patch *create_function_patch(void *function, void *arg) {
-  function_patch *entry = malloc(sizeof(function_patch));
-  entry->function_pointer = function;
+Patch *create_function_patch(void *patch_pointer, void *arg) {
+  Patch *entry = malloc(sizeof(Patch));
+  entry->patch_pointer = patch_pointer;
   entry->arg = arg;
   return entry;
 }
@@ -77,9 +76,9 @@ void check_run_patch(avr_t *avr) {
   patched_instruction *patch;
   HASH_FIND_INT(patched_instructions, &(avr->pc), patch);
   if (patch != NULL) {
-    function_patch *t;
-    DL_FOREACH(patch->function_patches, t) {
-      void (*s)() = t->function_pointer;
+    Patch *t;
+    DL_FOREACH(patch->patches, t) {
+      void (*s)() = t->patch_pointer;
       (*s)(t->arg);
     }
   }

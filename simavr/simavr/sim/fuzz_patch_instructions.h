@@ -9,15 +9,15 @@
 extern "C" {
 #endif
 
-typedef struct function_patch {
-  void *function_pointer;
+typedef struct Patch {
+  void *patch_pointer;
   void *arg;
-  struct function_patch *next, *prev;
-} function_patch;
+  struct Patch *next, *prev;
+} Patch;
 
 typedef struct patched_instruction {
   avr_flashaddr_t vaddr; /* we'll use this field as the key */
-  struct function_patch *function_patches;
+  struct Patch *patches;
   UT_hash_handle hh; /* makes this structure hashable */
 } patched_instruction;
 
@@ -28,9 +28,9 @@ struct patched_instruction *patched_instructions;
 
 void initialize_patch_instructions(struct avr_t *);
 void setup_patches(avr_t *avr) __attribute__((weak));
-int patch_instruction(avr_flashaddr_t vaddr, void *function_pointer, void *arg);
+int patch_instruction(avr_flashaddr_t vaddr, void *patch_pointer, void *arg);
 patched_instruction *get_or_create_patched_instruction(avr_flashaddr_t key);
-function_patch *create_function_patch(void *function, void *arg);
+Patch *create_function_patch(void *function, void *arg);
 void check_run_patch(avr_t *avr);
 void reset_patch_side_effects(avr_t *avr);
 void test_patch_function(void *arg);

@@ -141,19 +141,22 @@ void avr_core_watch_write(avr_t *avr, uint16_t addr, uint8_t v) {
   }
 
   // Buffer Overflow Check
+  // Could also have been implemented via a hash set. But often frame index
+  // is not very large.
   if (avr->disable_buffer_overflow_sanitizer == 0 &&
       avr->trace_data->stack_frame_index > 0) {
     int frame_index = avr->trace_data->stack_frame_index - 1;
-    // We add +1 here because .sp points to 1 below where return address is
-    // stored.
-    uint16_t stack_return_address =
-        avr->trace_data->stack_frame[frame_index].sp + 1;
-    if (stack_return_address <= addr &&
-        addr <= stack_return_address + avr->address_size - 1) {
-      printf("%04x : Stack Smashing Detected\n"
-             "SP %04x, A=%04x <= %02x\n",
-             avr->pc, _avr_sp_get(avr), addr, v);
-      stack_buffer_overflow_found(avr, avr->pc);
+    for (int i = frame_index; i >= 0; i--) {
+      // We add +1 here because .sp points to 1 below where return address is
+      // stored.
+      uint16_t stack_return_address = avr->trace_data->stack_frame[i].sp + 1;
+      if (stack_return_address <= addr &&
+          addr < stack_return_address + avr->address_size) {
+        printf("%04x : Stack Smashing Detected\n"
+               "SP %04x, A=%04x <= %02x\n",
+               avr->pc, _avr_sp_get(avr), addr, v);
+        stack_buffer_overflow_found(avr, avr->pc);
+      }
     }
   }
 

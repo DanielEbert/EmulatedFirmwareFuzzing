@@ -2,7 +2,7 @@
 
 int process_input(char *input) {
   char buffer[40]; 
-  strcpy(buffer, "Hello World!\n");
+  strcpy(buffer, input);
   Serial.println(buffer);
   return 1;
 }

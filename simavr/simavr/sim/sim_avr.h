@@ -394,6 +394,8 @@ typedef struct avr_t {
   uint64_t next_reset;
   // Timeout after 'timeout' cycles.
   uint64_t timeout;
+  // If a timeout is found, should the user UI server be notified?
+  int report_timeouts;
 
   Fuzzer *fuzzer;
   // reached edge coverage dictionary. key is struct Edge.

@@ -639,8 +639,10 @@ run_one_again:
 
   // Check if we got timed out
   if (avr->next_reset <= avr->cycle) {
-    printf("Timeout found at pc: %d\n", avr->pc);
-    timeout_found(avr, avr->pc);
+    if (avr->report_timeouts) {
+      printf("Timeout found at pc: %d\n", avr->pc);
+      timeout_found(avr, avr->pc);
+    }
     fuzz_reset(avr);
   }
 

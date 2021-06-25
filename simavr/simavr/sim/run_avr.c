@@ -130,6 +130,7 @@ int main(int argc, char *argv[]) {
   timeout <<= 62;
   char *path_to_seeds_dir = NULL;
   char *mutator_so_path = NULL;
+  int report_timeouts = 1;
 
   if (argc == 1)
     display_usage(basename(argv[0]));
@@ -270,6 +271,8 @@ int main(int argc, char *argv[]) {
         perror("Timeout too large: ");
         exit(1);
       }
+    } else if (!strcmp(argv[pi], "--dont_report_timeouts")) {
+      report_timeouts = 0;
     } else if (argv[pi][0] != '-') {
       filename = argv[pi];
       char *suffix = strrchr(filename, '.');
@@ -324,6 +327,7 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
   avr->timeout = timeout;
+  avr->report_timeouts = report_timeouts;
   avr_init(avr);
   avr->log = (log > LOG_TRACE ? LOG_TRACE : log);
   avr->trace = trace;

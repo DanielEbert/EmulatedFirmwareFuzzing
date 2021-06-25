@@ -21,7 +21,7 @@ typedef struct patched_instruction {
   UT_hash_handle hh; /* makes this structure hashable */
 } patched_instruction;
 
-// Global Hash Table
+// Global Hash Table. Implementation from https://troydhanson.github.io/uthash/
 // Key: virtual address
 // Value: list of function pointers
 struct patched_instruction *patched_instructions;
@@ -32,7 +32,6 @@ int patch_instruction(avr_flashaddr_t vaddr, void *patch_pointer, void *arg);
 patched_instruction *get_or_create_patched_instruction(avr_flashaddr_t key);
 Patch *create_function_patch(void *function, void *arg);
 void check_run_patch(avr_t *avr);
-void reset_patch_side_effects(avr_t *avr);
 void test_patch_function(void *arg);
 void fuzz_reset(void *arg);
 void print_current_input(void *arg);
@@ -43,6 +42,7 @@ uint32_t get_symbol_address(char *symbol_name, avr_t *avr);
 void write_to_ram(uint32_t dst, void *src, size_t num_bytes, avr_t *avr);
 void set_shadow_map(avr_flashaddr_t start, size_t size, uint8_t value,
                     avr_t *avr);
+void write_fuzz_input_global(void *);
 
 #ifdef __cplusplus
 };

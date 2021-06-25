@@ -245,7 +245,7 @@ int main(int argc, char *argv[]) {
     } else if (!strcmp(argv[pi], "--mutator_so_path")) {
       if (pi + 1 >= argc) {
         fprintf(stderr,
-                "%s: missing mandatory path to mutaor.so file for %s.\n",
+                "%s: missing mandatory path to mutator.so file for %s.\n",
                 argv[0], argv[pi]);
         exit(1);
       }
@@ -316,6 +316,11 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  if (filename == NULL) {
+    fprintf(stderr, "ERROR - No file to emulate specified.\n");
+    exit(1);
+  }
+
   if (strlen(name))
     strcpy(f.mmcu, name);
   if (f_cpu)
@@ -364,7 +369,7 @@ int main(int argc, char *argv[]) {
   for (int i = 0; i < required_symbols_size; i++) {
     if (!cc_hashtable_contains_key(symbols, required_symbols[i])) {
       fprintf(stderr,
-              "Error: Trying to emulate via an elf file that does not have the "
+              "Error: Trying to emulate an elf file that does not have the "
               "required symbol %s\n",
               required_symbols[i]);
       exit(1);

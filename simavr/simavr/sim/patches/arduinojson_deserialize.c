@@ -13,17 +13,3 @@ void setup_patches(avr_t *avr) {
                     avr);
   patch_instruction(get_symbol_address("loop", avr), fuzz_reset, avr);
 }
-
-void write_fuzz_input_global(void *arg) {
-  avr_t *avr = (avr_t *)arg;
-  avr_flashaddr_t fuzz_input_addr = get_symbol_address("fuzz_input", avr);
-  avr_flashaddr_t length_addr = get_symbol_address("fuzz_input_length", avr);
-
-  write_to_ram(fuzz_input_addr, avr->fuzzer->current_input->buf,
-               avr->fuzzer->current_input->buf_len, avr);
-
-  uint8_t length_addr_little_endian[] = {
-      avr->fuzzer->current_input->buf_len % 256,
-      (avr->fuzzer->current_input->buf_len >> 8) % 256};
-  write_to_ram(length_addr, length_addr_little_endian, 2, avr);
-}

@@ -143,13 +143,13 @@ void avr_core_watch_write(avr_t *avr, uint16_t addr, uint8_t v) {
   // Buffer Overflow Check
   if (avr->disable_buffer_overflow_sanitizer == 0 &&
       avr->trace_data->stack_frame_index > 0) {
+    int frame_index = avr->trace_data->stack_frame_index - 1;
     // We add +1 here because .sp points to 1 below where return address is
     // stored.
-    int frame_index = avr->trace_data->stack_frame_index - 1;
     uint16_t stack_return_address =
         avr->trace_data->stack_frame[frame_index].sp + 1;
     if (stack_return_address <= addr &&
-        addr <= stack_return_address + avr->address_size) {
+        addr <= stack_return_address + avr->address_size - 1) {
       printf("%04x : Stack Smashing Detected\n"
              "SP %04x, A=%04x <= %02x\n",
              avr->pc, _avr_sp_get(avr), addr, v);

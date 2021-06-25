@@ -7,7 +7,7 @@
 
 #include "sim_avr.h"
 #include "fuzz_config.h"
-
+#include <stdio.h>
 
 extern "C" size_t LLVMFuzzerMutate(uint8_t *Data, size_t Size, size_t MaxSize);
 extern "C" void   LLVMFuzzerMyInit(int (*UserCb)(const uint8_t *Data,

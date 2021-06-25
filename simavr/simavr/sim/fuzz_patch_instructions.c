@@ -102,8 +102,7 @@ uint32_t get_symbol_address(char *symbol_name, avr_t *avr) {
   return symbol_entry->addr % 0x800000;
 }
 
-void write_to_ram(avr_flashaddr_t dst, void *src, size_t num_bytes,
-                  avr_t *avr) {
+void write_to_ram(uint32_t dst, void *src, size_t num_bytes, avr_t *avr) {
   memcpy(avr->data + dst, src, num_bytes);
 
   set_shadow_map(dst, num_bytes, 1, avr);

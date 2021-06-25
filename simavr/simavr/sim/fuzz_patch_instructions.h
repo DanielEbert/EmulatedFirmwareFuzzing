@@ -40,7 +40,7 @@ void override_args(void *arg);
 void test_raise_interrupt(void *arg);
 void noop(avr_t *avr);
 uint32_t get_symbol_address(char *symbol_name, avr_t *avr);
-void write_to_ram(avr_flashaddr_t dst, void *src, size_t num_bytes, avr_t *avr);
+void write_to_ram(uint32_t dst, void *src, size_t num_bytes, avr_t *avr);
 void set_shadow_map(avr_flashaddr_t start, size_t size, uint8_t value,
                     avr_t *avr);
 

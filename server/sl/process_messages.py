@@ -172,8 +172,8 @@ class Process_Messages:
     self.fuzzer_stats.total_crashes = total_crashes
     self.fuzzer_stats.max_depth = max_depth
 
-  def addr_to_src(self, path_to_binary: str, addr: int, function_name=False) -> str:
-    cmd = ['avr-addr2line', '-e', path_to_binary, hex(addr)]
+  def addr_to_src(self, path_to_emulated_executable: str, addr: int, function_name=False) -> str:
+    cmd = ['avr-addr2line', '-e', path_to_emulated_executable, hex(addr)]
     if function_name:
       cmd += ['--functions', '--pretty-print']
     out = subprocess.check_output(cmd, timeout=10)

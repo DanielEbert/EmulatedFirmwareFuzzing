@@ -99,7 +99,8 @@ uint32_t get_symbol_address(char *symbol_name, avr_t *avr) {
     exit(1);
   }
   avr_symbol_t *symbol_entry = (avr_symbol_t *)entry;
-  return symbol_entry->addr;
+  // Addresses in symbols have an 0x800000 offset if they are in RAM
+  return symbol_entry->addr % 0x800000;
 }
 
 void write_to_flashaddr(avr_flashaddr_t dst, void *src, size_t num_bytes,

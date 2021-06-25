@@ -16,10 +16,8 @@ void setup_patches(avr_t *avr) {
 
 void write_fuzz_input_global(void *arg) {
   avr_t *avr = (avr_t *)arg;
-  avr_flashaddr_t fuzz_input_addr =
-      get_symbol_address("fuzz_input", avr) - 0x800000;
-  avr_flashaddr_t length_addr =
-      get_symbol_address("fuzz_input_length", avr) - 0x800000;
+  avr_flashaddr_t fuzz_input_addr = get_symbol_address("fuzz_input", avr);
+  avr_flashaddr_t length_addr = get_symbol_address("fuzz_input_length", avr);
 
   write_to_flashaddr(fuzz_input_addr, avr->fuzzer->current_input->buf,
                      avr->fuzzer->current_input->buf_len, avr);

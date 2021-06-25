@@ -35,9 +35,8 @@ void initialize_uninitialized_sanitizer(avr_t *avr) {
   // contains static data which was defined in the code.
   if (cc_hashtable_contains_key(avr->symbols, "__data_start")) {
     assert(cc_hashtable_contains_key(avr->symbols, "__data_end"));
-    // Addresses in symbols have an 0x800000 offset if they are in RAM
-    uint32_t __data_start = get_symbol_address("__data_start", avr) - 0x800000;
-    uint32_t __data_end = get_symbol_address("__data_end", avr) - 0x800000;
+    uint32_t __data_start = get_symbol_address("__data_start", avr);
+    uint32_t __data_end = get_symbol_address("__data_end", avr);
     assert(__data_start <= __data_end);
     for (uint32_t i = __data_start; i < __data_end; i++) {
       avr->shadow[i] = 1;

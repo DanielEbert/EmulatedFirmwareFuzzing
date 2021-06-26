@@ -5,6 +5,7 @@ import shutil
 import hashlib
 import time
 import amoco
+from amoco.arch.core import type_control_flow 
 
 
 # TODOE: maybe refactor
@@ -80,14 +81,18 @@ class Process_Messages:
       print(f"Warning: Disassemby of {self.path_to_emulated_executable} failed.")
       return
     try:
-      basic_block = self.disassembler.getblock(to_addr)
-      # TODO
-      block_len = len(basic_block.instr)
-      print(f'{block_len=}')
-      for i in basic_block.instr:
+      instructions = []
+      disass = self.disassembler.sequence(to_addr)
+      while True:
+        instr = next(disass)
+        instructions.append(instr)
+        if instr.type == type_control_flow and 'CALL' not in instr.mnemonic:
+          break
+      for i in instructions:
         addr  = i.address.value
         src_location = self.addr_to_src(self.path_to_emulated_executable, addr)
         src_location = src_location.decode('UTF-8').strip()
+        #print(src_location)
         if src_location.startswith('??:'):
           return
         # decode and remove trailing newline

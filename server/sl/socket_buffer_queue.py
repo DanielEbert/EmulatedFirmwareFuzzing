@@ -17,22 +17,19 @@ class Socket_Buffer_Queue:
   def listen_for_packages(self):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    try:
-      sock.bind(("127.0.0.1", self.listen_port))
-      sock.listen()
-      conn, addr = sock.accept()
-      with conn:
-        print(f"Connection established with {addr}")
-        while True:
-          # wait for recv of header
-          data = conn.recv(4096)
-          if len(data) == 0:
-            print("Connection was closed")
-            sock.close()
-            # Kill Parent
-            parent_pid = os.getppid()
-            os.kill(parent_pid, signal.SIGTERM)
-            os._exit(0)
-          self.client_packages.put(data)
-    finally:
-      sock.close()
+    sock.bind(("127.0.0.1", self.listen_port))
+    sock.listen()
+    conn, addr = sock.accept()
+    with conn:
+      print(f"Connection established with {addr}")
+      while True:
+        # wait for recv of header
+        data = conn.recv(4096)
+        if len(data) == 0:
+          print("Connection was closed")
+          sock.close()
+          # Kill Parent
+          parent_pid = os.getppid()
+          os.kill(parent_pid, signal.SIGTERM)
+          break
+        self.client_packages.put(data)

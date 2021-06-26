@@ -1,8 +1,8 @@
 #include <ArduinoJson.h>
 #include <assert.h>
 
-char fuzz_input[256];
-uint16_t fuzz_input_length;
+volatile char fuzz_input[256];
+volatile size_t fuzz_input_length;
 
 void execute_me() {
   Serial.println("You win!");
@@ -10,17 +10,21 @@ void execute_me() {
   foo(); // *crash*
 }
 
-void setup() {
-  Serial.begin(9600);
-  if (fuzz_input_length >= 6 &&
-      fuzz_input[0] == 'H' &&
-      fuzz_input[1] == 'e' &&
-      fuzz_input[2] == 'l' &&
-      fuzz_input[3] == 'l' &&
-      fuzz_input[4] == 'o' &&
-      fuzz_input[5] == '!') {
+void parse(char *input, size_t input_length) {
+  if (input_length >= 6 &&
+      input[0] == 'H' &&
+      input[1] == 'e' &&
+      input[2] == 'l' &&
+      input[3] == 'l' &&
+      input[4] == 'o' &&
+      input[5] == '!') {
     execute_me();
   }
+}
+
+void setup() {
+  Serial.begin(9600);
+  parse(fuzz_input, fuzz_input_length);
 }
 
 void loop() {};

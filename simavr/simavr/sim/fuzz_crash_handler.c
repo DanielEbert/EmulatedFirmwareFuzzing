@@ -133,11 +133,11 @@ void crash_found(avr_t *avr, avr_flashaddr_t crashing_addr,
   send_crash(avr, crash);
 }
 
-// Returns zero if keys are equal
+// key comparator function which returns true if the keys are identical
 int crash_compare(const void *key1, const void *key2) {
   CrashKey *e1 = (CrashKey *)key1;
   CrashKey *e2 = (CrashKey *)key2;
-  return !(e1->crash_id == e2->crash_id &&
-           e1->crashing_addr == e2->crashing_addr &&
-           e1->origin_addr == e2->origin_addr);
+  return (e1->crash_id == e2->crash_id &&
+          e1->crashing_addr == e2->crashing_addr &&
+          e1->origin_addr == e2->origin_addr);
 }

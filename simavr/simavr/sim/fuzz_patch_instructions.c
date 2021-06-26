@@ -42,7 +42,6 @@ void setup_patches(avr_t *avr) { printf("Using no patches.\n"); }
 
 int patch_instruction(avr_flashaddr_t vaddr, void *patch_pointer, void *arg) {
   patched_instruction *p = get_or_create_patched_instruction(vaddr);
-
   DL_APPEND(p->patches, create_function_patch(patch_pointer, arg));
 
   return 0;
@@ -69,6 +68,8 @@ Patch *create_function_patch(void *patch_pointer, void *arg) {
   Patch *entry = malloc(sizeof(Patch));
   entry->patch_pointer = patch_pointer;
   entry->arg = arg;
+  entry->next = 0;
+  entry->prev = 0;
   return entry;
 }
 
@@ -80,6 +81,8 @@ void check_run_patch(avr_t *avr) {
     DL_FOREACH(patch->patches, t) {
       void (*s)() = t->patch_pointer;
       (*s)(t->arg);
+      // TODOE
+      // exit(3);
     }
   }
 }

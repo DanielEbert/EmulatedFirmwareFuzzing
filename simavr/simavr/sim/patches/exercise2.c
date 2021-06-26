@@ -7,4 +7,5 @@ void setup_patches(avr_t *avr) {
   //avr);
   patch_instruction(get_symbol_address("setup", avr), write_fuzz_input_global,
                     avr);
+ patch_instruction(get_symbol_address("loop", avr), fuzz_reset, avr);
 }

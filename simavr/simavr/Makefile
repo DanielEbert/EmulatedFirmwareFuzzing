@@ -31,6 +31,9 @@ CFLAGS	+= -Werror
 CFLAGS	+= -DCONFIG_SIMAVR_TRACE=1 #-DELF_SYMBOLS=1
 # not working correctly (most of the time) CFLAGS += -DAVR_STACK_WATCH
 
+# TODOE: disable sanitizers
+#CFLAGS += -fsanitize=address -static-libasan
+
 all:
 	$(MAKE) obj config
 	$(MAKE) libsimavr ${target}

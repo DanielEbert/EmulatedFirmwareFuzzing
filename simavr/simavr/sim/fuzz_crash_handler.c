@@ -85,7 +85,31 @@ void crash_found(avr_t *avr, avr_flashaddr_t crashing_addr,
   key->crashing_addr = crashing_addr;
   key->origin_addr = origin_addr;
   if (cc_hashtable_contains_key(avr->unique_crashes, key)) {
+    free(key);
     return;
+  }
+
+  switch (crash_id) {
+  case 0:
+    printf("Stack Smashing Detected PC %04x\n", crashing_addr);
+    break;
+  case 1:
+    printf("New unique use of uninitialized memory found at PC %04x, with "
+           "origin %04x",
+           crashing_addr, origin_addr);
+    break;
+  case 2:
+    printf("Timeout found at pc: %d\n", crashing_addr);
+    break;
+  case 3:
+    printf("Invalid write address PC %04x\n", crashing_addr);
+    break;
+  case 4:
+    printf("Bad jump found at pc: %d\n", crashing_addr);
+    break;
+  case 5:
+    printf("Reading past end of flash found at pc: %d\n", crashing_addr);
+    break;
   }
 
   Crash *crash = malloc(sizeof(Crash));

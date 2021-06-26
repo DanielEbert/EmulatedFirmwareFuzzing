@@ -236,7 +236,7 @@ int main(int argc, char *argv[]) {
       loadBase = AVR_SEGMENT_OFFSET_EEPROM;
     } else if (!strcmp(argv[pi], "-ff")) {
       loadBase = AVR_SEGMENT_OFFSET_FLASH;
-    } else if (!strcmp(argv[pi], "--path_to_seeds_dir")) {
+    } else if (!strcmp(argv[pi], "--seeds")) {
       if (pi + 1 >= argc) {
         fprintf(stderr, "%s: missing path argument for %s.\n", argv[0],
                 argv[pi]);

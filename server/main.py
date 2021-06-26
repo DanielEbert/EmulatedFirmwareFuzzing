@@ -13,13 +13,5 @@ def signal_handler(sig, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 
-
-def run():
-  socket_buffer_queue = Socket_Buffer_Queue()
-
-
 if __name__ == "__main__":
-  while True: 
-    p = mp.Process(target=run)
-    p.start()
-    p.join()
+  socket_buffer_queue = Socket_Buffer_Queue()

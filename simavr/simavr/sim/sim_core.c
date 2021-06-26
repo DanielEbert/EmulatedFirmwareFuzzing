@@ -44,7 +44,10 @@ const char *_sreg_bit_name = "cznvshti";
 
 #define T(w) w
 
-#define REG_TOUCH(a, r) (a)->trace_data->touched[(r) >> 5] |= (1 << ((r)&0x1f))
+// TODOE: this throws asan error
+//#define REG_TOUCH(a, r) (a)->trace_data->touched[(r) >> 5] |= (1 <<
+//((r)&0x1f))
+#define REG_TOUCH(a, r)
 #define REG_ISTOUCHED(a, r)                                                    \
   ((a)->trace_data->touched[(r) >> 5] & (1 << ((r)&0x1f)))
 
@@ -131,11 +134,6 @@ void avr_core_watch_write(avr_t *avr, uint16_t addr, uint8_t v) {
     addr = addr % (avr->ramend + 1);
   }
   if (addr < 32) {
-    AVR_LOG(avr, LOG_ERROR,
-            FONT_RED "CORE: *** Invalid write address PC=%04x SP=%04x O=%04x "
-                     "Address %04x=%02x low registers\n" FONT_DEFAULT,
-            avr->pc, _avr_sp_get(avr), _avr_flash_read16le(avr, avr->pc), addr,
-            v);
     // crash(avr); Instead of crashing, we want to reset
     invalid_write_address_found(avr, avr->pc);
   }
@@ -151,9 +149,6 @@ void avr_core_watch_write(avr_t *avr, uint16_t addr, uint8_t v) {
       uint16_t stack_return_address = avr->trace_data->stack_frame[i].sp + 1;
       if (stack_return_address <= addr &&
           addr < stack_return_address + avr->address_size) {
-        printf("%04x : Stack Smashing Detected\n"
-               "SP %04x, A=%04x <= %02x\n",
-               avr->pc, _avr_sp_get(avr), addr, v);
         stack_buffer_overflow_found(avr, avr->pc);
       }
     }
@@ -619,7 +614,6 @@ run_one_again:
     //		avr->trace = 1;
     // STATE("RESET\n");
     // crash(avr); Instead of crashing, we want to reset
-    printf("Bad jump found at pc: %d\n", avr->pc);
     bad_jump_found(avr, avr->pc);
     fuzz_reset(avr);
   }
@@ -633,7 +627,6 @@ run_one_again:
   if (unlikely(avr->pc >= avr->flashend)) {
     // STATE("CRASH\n");
     // crash(avr);
-    printf("Reading pas end of flash found at pc: %d\n", avr->pc);
     reading_past_end_of_flash_found(avr, avr->pc);
     fuzz_reset(avr);
     return 0;
@@ -642,7 +635,6 @@ run_one_again:
   // Check if we got timed out
   if (avr->next_reset <= avr->cycle) {
     if (avr->report_timeouts) {
-      printf("Timeout found at pc: %d\n", avr->pc);
       timeout_found(avr, avr->pc);
     }
     fuzz_reset(avr);

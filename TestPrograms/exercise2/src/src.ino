@@ -10,6 +10,7 @@ void execute_me() {
 
 void setup() {
   Serial.begin(9600);
+  //Serial.println(fuzz_input);
   if (fuzz_input_length >= 3 &&
       fuzz_input[0] == 'H' &&
       fuzz_input[1] == 'i' &&

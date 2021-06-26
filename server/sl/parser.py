@@ -3,9 +3,12 @@ from sl.process_messages import Process_Messages
 import sys
 
 
-class Parser:
+class Parser(mp.Process):
   def __init__(self, client_packages: mp.Queue):
+    super().__init__()
     self.client_packages = client_packages
+
+  def run(self):
     self.process_messages = Process_Messages()
     self.read_from_queue()
 

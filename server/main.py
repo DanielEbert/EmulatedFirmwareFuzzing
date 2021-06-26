@@ -11,7 +11,6 @@ def signal_handler(sig, frame):
   print('\nExiting...')
   os._exit(0)
 
-
 signal.signal(signal.SIGINT, signal_handler)
 
 

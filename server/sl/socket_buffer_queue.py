@@ -10,9 +10,13 @@ class Socket_Buffer_Queue:
     self.listen_port = listen_port
     self.client_packages = mp.Queue()
     # Asynchronous waiting for packets. Packets are appended to the queue.
-    p = mp.Process(target=self.listen_for_packages)
-    p.start()
-    self.parser = Parser(self.client_packages)
+    parser = Parser(self.client_packages)
+    parser.start()
+    self.listen_for_packages()
+    # If connection was closed: Kill child process
+    parser.kill()
+    parser.join()
+    exit(0)
 
   def listen_for_packages(self):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -28,8 +32,5 @@ class Socket_Buffer_Queue:
         if len(data) == 0:
           print("Connection was closed")
           sock.close()
-          # Kill Parent
-          parent_pid = os.getppid()
-          os.kill(parent_pid, signal.SIGTERM)
-          break
+          return
         self.client_packages.put(data)

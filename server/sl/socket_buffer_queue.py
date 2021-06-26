@@ -31,8 +31,7 @@ class Socket_Buffer_Queue:
             sock.close()
             # Kill Parent
             parent_pid = os.getppid()
-            if parent_pid != 1:
-              os.kill(parent_pid, signal.SIGTERM)
+            os.kill(parent_pid, signal.SIGTERM)
             os._exit(0)
           self.client_packages.put(data)
     finally:

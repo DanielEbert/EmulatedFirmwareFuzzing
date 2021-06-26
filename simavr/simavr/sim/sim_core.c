@@ -143,8 +143,7 @@ void avr_core_watch_write(avr_t *avr, uint16_t addr, uint8_t v) {
   // Buffer Overflow Check
   // Could also have been implemented via a hash set. But often frame index
   // is not very large.
-  if (avr->disable_buffer_overflow_sanitizer == 0 &&
-      avr->trace_data->stack_frame_index > 0) {
+  if (avr->disable_buffer_overflow_sanitizer == 0) {
     int frame_index = avr->trace_data->stack_frame_index - 1;
     for (int i = frame_index; i >= 0; i--) {
       // We add +1 here because .sp points to 1 below where return address is

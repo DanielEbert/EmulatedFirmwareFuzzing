@@ -4,6 +4,7 @@ import os
 import shutil
 import hashlib
 import time
+import amoco
 
 
 # TODOE: maybe refactor
@@ -28,7 +29,7 @@ class Fuzzer_Stats:
     self.reading_past_end_of_flash_count = 0
     self.stack_buffer_overfow_count = 0
     self.stats_update_time = None
-    # average of the last X seconds
+    # average of the last 10 seconds
     self.average_inputs_executed_last_10_seconds = 0
 
 
@@ -39,6 +40,7 @@ class Process_Messages:
     self.update_ui = Update_UI(self, CURRENT_RUN_DIR)
     self.update_ui.start()
     self.path_to_emulated_executable = None
+    self.disassembler = None
 
   def move_old_data(self):
     if not os.path.exists(CURRENT_RUN_DIR):
@@ -62,37 +64,54 @@ class Process_Messages:
     self.fuzzer_stats.fuzzer_start_time = time.time()
     self.fuzzer_stats.stats_update_time = time.time()
     self.path_to_emulated_executable = path
+    try:
+      prog = amoco.load_program(path)
+      self.disassembler = amoco.sa.lsweep(prog)
+    except Exception as e:
+      print(f'Disassembly of file {path} failed. Exception:', e)
+      self.disassembler = None
 
   def update_coverage(self, from_addr: int, to_addr: int):
     if self.path_to_emulated_executable is None:
       print("Warning: Client has not sent path_to_emulated_executable yet.")
       return
     self.fuzzer_stats.edges_found += 1
-    # looks more clear if we only mark the to_addr line
-    src_location = self.addr_to_src(self.path_to_emulated_executable, to_addr)
-    src_location = src_location.decode('UTF-8').strip()
-    if src_location.startswith('??:'):
+    if self.disassembler is None:
+      print(f"Warning: Disassemby of {self.path_to_emulated_executable} failed.")
       return
-    # decode and remove trailing newline
-    # if not key exists: mkdir -p of basedir and cp src. check if src exists
-    if not os.path.isabs(src_location) or not src_location[0] == '/':
-      print(f'no absolute path {src_location}')
-      return
-    src_location_file, src_location_line = src_location.split(':')
-    if not os.path.exists(src_location_file):
-      return
-    cached_source_code_file = os.path.join(
-        CURRENT_RUN_DIR, src_location_file[1:])
-    gcov_file = cached_source_code_file + '.gcov'
-    if not os.path.exists(cached_source_code_file):
-      os.makedirs(os.path.dirname(cached_source_code_file), exist_ok=True)
-      shutil.copyfile(src_location_file, cached_source_code_file)
-      with open(gcov_file, 'w') as f:
-        # 'Source:' is relative to CURRENT_RUN_DIR
-        f.write(f'-:0:Source:{src_location_file[1:]}\n')
-    with open(gcov_file, 'a') as f:
-      f.write(f'1:{src_location_line}:\n')
-    self.update_ui.on_new_edge()
+    try:
+      basic_block = self.disassembler.getblock(to_addr)
+      # TODO
+      block_len = len(basic_block.instr)
+      print(f'{block_len=}')
+      for i in basic_block.instr:
+        addr  = i.address.value
+        src_location = self.addr_to_src(self.path_to_emulated_executable, addr)
+        src_location = src_location.decode('UTF-8').strip()
+        if src_location.startswith('??:'):
+          return
+        # decode and remove trailing newline
+        # if not key exists: mkdir -p of basedir and cp src. check if src exists
+        if not os.path.isabs(src_location) or not src_location[0] == '/':
+          print(f'no absolute path {src_location}')
+          return
+        src_location_file, src_location_line = src_location.split(':')
+        if not os.path.exists(src_location_file):
+          return
+        cached_source_code_file = os.path.join(
+            CURRENT_RUN_DIR, src_location_file[1:])
+        gcov_file = cached_source_code_file + '.gcov'
+        if not os.path.exists(cached_source_code_file):
+          os.makedirs(os.path.dirname(cached_source_code_file), exist_ok=True)
+          shutil.copyfile(src_location_file, cached_source_code_file)
+          with open(gcov_file, 'w') as f:
+            # 'Source:' is relative to CURRENT_RUN_DIR
+            f.write(f'-:0:Source:{src_location_file[1:]}\n')
+        with open(gcov_file, 'a') as f:
+          f.write(f'1:{src_location_line}:\n')
+        self.update_ui.on_new_edge()
+    except Exception as e:
+      print(f'Coverage Explorer update exception', e)
 
   def save_previous_interesting_input(self, inp: bytes):
     # sha1 as filename

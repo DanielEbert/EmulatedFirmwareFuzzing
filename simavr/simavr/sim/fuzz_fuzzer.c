@@ -49,6 +49,8 @@ void initialize_fuzzer(avr_t *avr, char *path_to_seeds, char *run_once_file,
     *initial_input = 'A';
     add_previous_interesting_input(previous_interesting_inputs, initial_input,
                                    1);
+    initialize_mutator(fuzzer, mutator_so_path);
+    generate_input(avr, fuzzer);
   }
 }
 

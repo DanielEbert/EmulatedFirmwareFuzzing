@@ -83,8 +83,9 @@ static void sig_int(int sign) {
 }
 
 static void sig_crash(int sign) {
-  printf("ERROR: emulator caught signal. Storing current input to "
-         "emulator_crash_input file on disk and terminating\n");
+  printf("ERROR: emulator caught signal %d. Storing current input to "
+         "emulator_crash_input file on disk and terminating\n",
+         sign);
   if (avr) {
     if (avr->fuzzer != NULL && avr->fuzzer->current_input != NULL &&
         avr->fuzzer->current_input->buf != NULL) {

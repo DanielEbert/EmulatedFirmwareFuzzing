@@ -1,0 +1,19 @@
+#include <Arduino.h>
+#include <unity.h>
+#include "main.cpp"
+
+volatile char fuzz_input[256];
+volatile size_t fuzz_input_length;
+
+void test_parse(void) {
+  TEST_ASSERT_EQUAL_INT(0, parse(fuzz_input, fuzz_input_length));
+}
+
+void setup() {
+  Serial.begin(9600);
+  UNITY_BEGIN();
+  RUN_TEST(test_parse);
+  UNITY_END();
+}
+
+void loop(){}

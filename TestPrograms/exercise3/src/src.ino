@@ -24,7 +24,8 @@ void parse(char *input, size_t input_length) {
 
 void setup() {
   Serial.begin(9600);
-  parse(fuzz_input, fuzz_input_length);
 }
 
-void loop() {};
+void loop() {
+  parse(fuzz_input, fuzz_input_length);
+};

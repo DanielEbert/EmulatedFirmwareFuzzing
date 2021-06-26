@@ -172,7 +172,7 @@ typedef struct Input {
 typedef struct Fuzzer {
   Input *current_input;
   CC_Array *previous_interesting_inputs;
-  uint32_t (*mutator_mutate)(Input *);
+  uint32_t (*mutator_mutate)(Input *, size_t);
 } Fuzzer;
 
 /*
@@ -398,6 +398,7 @@ typedef struct avr_t {
   int report_timeouts;
 
   Fuzzer *fuzzer;
+  size_t max_input_length;
   // reached edge coverage dictionary. key is struct Edge.
   // if key-value pair exists: Edge reached
   Server_Connection *server_connection;

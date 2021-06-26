@@ -13,7 +13,7 @@ void initialize_fuzzer(avr_t *avr, char *path_to_seeds, char *run_once_file,
   avr->fuzzer = fuzzer;
 
   Input *current_input = malloc(sizeof(Input));
-  void *current_input_buffer = malloc(MAX_INPUT_LENGTH);
+  void *current_input_buffer = malloc(avr->max_input_length);
   current_input->buf = current_input_buffer;
   current_input->buf_len = 0;
   fuzzer->current_input = current_input;
@@ -31,7 +31,7 @@ void initialize_fuzzer(avr_t *avr, char *path_to_seeds, char *run_once_file,
 
   if (run_once_file != NULL) {
     avr->run_once = 1;
-    add_seed_from_file(previous_interesting_inputs, run_once_file);
+    add_seed_from_file(avr, previous_interesting_inputs, run_once_file);
     // This is not random because there is only 1 seed -- this is what we want.
     Input *input = get_random_previous_interesting_input(
         fuzzer->previous_interesting_inputs);
@@ -39,7 +39,7 @@ void initialize_fuzzer(avr_t *avr, char *path_to_seeds, char *run_once_file,
     fuzzer->current_input->buf_len = input->buf_len;
     avr->input_has_reached_new_coverage = 0;
   } else if (path_to_seeds != NULL) {
-    initialize_seeds(previous_interesting_inputs, path_to_seeds);
+    initialize_seeds(avr, previous_interesting_inputs, path_to_seeds);
     initialize_mutator(fuzzer, mutator_so_path);
     generate_input(avr, fuzzer);
   } else {
@@ -54,7 +54,7 @@ void initialize_fuzzer(avr_t *avr, char *path_to_seeds, char *run_once_file,
   }
 }
 
-void initialize_seeds(CC_Array *previous_interesting_inputs,
+void initialize_seeds(avr_t *avr, CC_Array *previous_interesting_inputs,
                       char *path_to_seeds) {
   // for each file in the seeds folder, add the contents of this file to the
   // previous_interesting_inputs array
@@ -86,7 +86,7 @@ void initialize_seeds(CC_Array *previous_interesting_inputs,
     strcpy(path_to_seed_file + path_to_seeds_len, seeds_dir_entry->d_name);
     // printf("Adding file %s to the previous interesting inputs\n",
     //       path_to_seed_file);
-    add_seed_from_file(previous_interesting_inputs, path_to_seed_file);
+    add_seed_from_file(avr, previous_interesting_inputs, path_to_seed_file);
   }
 
   closedir(seeds_dir);
@@ -115,7 +115,7 @@ void initialize_mutator(Fuzzer *fuzzer, char *mutator_so_path) {
     }
     initialize_mutator(fast_random());
 
-    uint32_t (*mutator_mutate)(Input *) = dlsym(dh, "mutator_mutate");
+    uint32_t (*mutator_mutate)(Input *, size_t) = dlsym(dh, "mutator_mutate");
     if (!initialize_mutator) {
       fprintf(stderr, "ERROR: Symbol mutator_mutate not found in "
                       "libfuzzer-mutator.so\n");
@@ -128,7 +128,7 @@ void initialize_mutator(Fuzzer *fuzzer, char *mutator_so_path) {
   }
 }
 
-void add_seed_from_file(CC_Array *previous_interesting_inputs,
+void add_seed_from_file(avr_t *avr, CC_Array *previous_interesting_inputs,
                         char *file_path) {
   FILE *f = fopen(file_path, "r");
   if (f == NULL) {
@@ -140,12 +140,12 @@ void add_seed_from_file(CC_Array *previous_interesting_inputs,
 
   int pos = 0;
   int cur;
-  char *buffer = malloc(MAX_INPUT_LENGTH);
+  char *buffer = malloc(avr->max_input_length);
   do {
-    if (pos >= MAX_INPUT_LENGTH) {
+    if (pos > avr->max_input_length) {
       printf("Skipping seed file %s. Reason: File content is too large. The "
-             "maximum input length is: %d.\n",
-             file_path, MAX_INPUT_LENGTH);
+             "maximum input length is: %ld.\n",
+             file_path, avr->max_input_length);
       return;
     }
     cur = fgetc(f);
@@ -201,14 +201,15 @@ void generate_input(avr_t *avr, Fuzzer *fuzzer) {
   memcpy(fuzzer->current_input->buf, input->buf, input->buf_len);
   fuzzer->current_input->buf_len = input->buf_len;
 
-  uint32_t input_size = fuzzer->mutator_mutate(fuzzer->current_input);
+  uint32_t input_size =
+      fuzzer->mutator_mutate(fuzzer->current_input, avr->max_input_length);
   fuzzer->current_input->buf_len = input_size;
   // mutate(fuzzer->current_input);
 
   avr->input_has_reached_new_coverage = 0;
 }
 
-uint32_t mutate(Input *input) {
+uint32_t mutate(Input *input, size_t max_input_length) {
   // For now this is mutator is not used in production, only for testing.
   // Using libfuzzer mutator instead
   int num_mutations_1 = fast_random() % (NUM_MUTATIONS + 1);
@@ -232,8 +233,8 @@ void evaluate_input(avr_t *avr) {
 
   // Copy current input to a new buffer, buffer is saved as
   // previous_interesting_input, and the current input (buffer) can be reused
-  char *buffer = malloc(MAX_INPUT_LENGTH);
-  memcpy(buffer, avr->fuzzer->current_input->buf, MAX_INPUT_LENGTH);
+  char *buffer = malloc(avr->max_input_length);
+  memcpy(buffer, avr->fuzzer->current_input->buf, avr->max_input_length);
 
   add_previous_interesting_input(avr->fuzzer->previous_interesting_inputs,
                                  buffer, avr->fuzzer->current_input->buf_len);

@@ -28,8 +28,8 @@ extern "C" void initialize_mutator(unsigned int seed) {
   LLVMFuzzerMyInit(dummy, seed);
 }
 
-extern "C" uint32_t mutator_mutate(Input *input) {
-  uint32_t ret = LLVMFuzzerMutate((uint8_t *)input->buf, input->buf_len, MAX_INPUT_LENGTH);
+extern "C" uint32_t mutator_mutate(Input *input, size_t max_input_length) {
+  uint32_t ret = LLVMFuzzerMutate((uint8_t *)input->buf, input->buf_len, max_input_length);
   return ret;
 }
 

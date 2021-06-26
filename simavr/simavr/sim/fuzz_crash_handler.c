@@ -94,21 +94,21 @@ void crash_found(avr_t *avr, avr_flashaddr_t crashing_addr,
     printf("Stack Smashing Detected PC %04x\n", crashing_addr);
     break;
   case 1:
-    printf("New unique use of uninitialized memory found at PC %04x, with "
-           "origin %04x",
+    printf("New unique use of uninitialized memory found at PC 0x%04x, with "
+           "origin 0x%04x",
            crashing_addr, origin_addr);
     break;
   case 2:
-    printf("Timeout found at pc: %d\n", crashing_addr);
+    printf("Timeout found at pc: 0x%04x\n", crashing_addr);
     break;
   case 3:
-    printf("Invalid write address PC %04x\n", crashing_addr);
+    printf("Invalid write address PC 0x%04x\n", crashing_addr);
     break;
   case 4:
-    printf("Bad jump found at pc: %d\n", crashing_addr);
+    printf("Bad jump found at pc: 0x%04x\n", crashing_addr);
     break;
   case 5:
-    printf("Reading past end of flash found at pc: %d\n", crashing_addr);
+    printf("Reading past end of flash found at pc: 0x%04x\n", crashing_addr);
     break;
   }
 
@@ -119,8 +119,8 @@ void crash_found(avr_t *avr, avr_flashaddr_t crashing_addr,
 
   Input *crashing_input = malloc(sizeof(Input));
   crashing_input->buf_len = avr->fuzzer->current_input->buf_len;
-  void *buffer = malloc(MAX_INPUT_LENGTH);
-  memcpy(buffer, avr->fuzzer->current_input->buf, MAX_INPUT_LENGTH);
+  void *buffer = malloc(avr->max_input_length);
+  memcpy(buffer, avr->fuzzer->current_input->buf, avr->max_input_length);
   crashing_input->buf = buffer;
 
   crash->crashing_input = crashing_input;

@@ -9,10 +9,6 @@ import datetime
 
 
 class Update_UI(threading.Thread):
-  start_time = None
-  new_coverage = False
-  # list of tuples: (epoch, edges reached)
-  edges_plot_data = []
 
   def __init__(self, process_messages, CURRENT_RUN_DIR, sleep_time=5):
     threading.Thread.__init__(self)
@@ -21,6 +17,9 @@ class Update_UI(threading.Thread):
     self.sleep_time = sleep_time
     self.new_coverage = False
     self.CURRENT_RUN_DIR = CURRENT_RUN_DIR
+    self.start_time = None
+    # list of tuples: (epoch, edges reached)
+    self.edges_plot_data = []
 
   def run(self):
     while True:

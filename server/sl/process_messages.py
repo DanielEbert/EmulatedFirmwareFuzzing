@@ -37,7 +37,6 @@ class Process_Messages:
   def __init__(self):
     self.fuzzer_stats = Fuzzer_Stats()
     self.update_ui = Update_UI(self, CURRENT_RUN_DIR)
-    self.update_ui.start()
     self.path_to_emulated_executable = None
     self.disassembler = None
 
@@ -64,6 +63,7 @@ class Process_Messages:
     self.fuzzer_stats.stats_update_time = time.time()
     self.path_to_emulated_executable = path
     self.move_old_data()
+    self.update_ui.start()
     try:
       prog = amoco.load_program(path)
       self.disassembler = amoco.sa.lsweep(prog)
@@ -79,43 +79,44 @@ class Process_Messages:
     if self.disassembler is None:
       print(f"Warning: Disassemby of {self.path_to_emulated_executable} failed.")
       return
-    try:
-      instructions = []
-      disass = self.disassembler.sequence(to_addr)
-      while True:
+    instructions = []
+    disass = self.disassembler.sequence(to_addr)
+    while True:
+      try:
         instr = next(disass)
-        instructions.append(instr)
-        if instr.type == type_control_flow and 'CALL' not in instr.mnemonic:
-          break
-      for i in instructions:
-        addr  = i.address.value
-        src_location = self.addr_to_src(self.path_to_emulated_executable, addr)
-        src_location = src_location.decode('UTF-8').strip()
-        #print(src_location)
-        if src_location.startswith('??:'):
-          return
-        # decode and remove trailing newline
-        # if not key exists: mkdir -p of basedir and cp src. check if src exists
-        if not os.path.isabs(src_location) or not src_location[0] == '/':
-          print(f'no absolute path {src_location}')
-          return
-        src_location_file, src_location_line = src_location.split(':')
-        if not os.path.exists(src_location_file):
-          return
-        cached_source_code_file = os.path.join(
-            CURRENT_RUN_DIR, src_location_file[1:])
-        gcov_file = cached_source_code_file + '.gcov'
-        if not os.path.exists(cached_source_code_file):
-          os.makedirs(os.path.dirname(cached_source_code_file), exist_ok=True)
-          shutil.copyfile(src_location_file, cached_source_code_file)
-          with open(gcov_file, 'w') as f:
-            # 'Source:' is relative to CURRENT_RUN_DIR
-            f.write(f'-:0:Source:{src_location_file[1:]}\n')
-        with open(gcov_file, 'a') as f:
-          f.write(f'1:{src_location_line}:\n')
-        self.update_ui.on_new_edge()
-    except Exception as e:
-      print(f'Coverage Explorer update exception', e)
+      except Exception as e:
+        print(f'Coverage Explorer update exception', e)
+        break
+      instructions.append(instr)
+      if instr.type == type_control_flow and 'CALL' not in instr.mnemonic:
+        break
+    for i in instructions:
+      addr = i.address.value
+      src_location = self.addr_to_src(self.path_to_emulated_executable, addr)
+      src_location = src_location.decode('UTF-8').strip()
+      #print(src_location)
+      if src_location.startswith('??:'):
+        return
+      # decode and remove trailing newline
+      # if not key exists: mkdir -p of basedir and cp src. check if src exists
+      if not os.path.isabs(src_location) or not src_location[0] == '/':
+        print(f'no absolute path {src_location}')
+        return
+      src_location_file, src_location_line = src_location.split(':')
+      if not os.path.exists(src_location_file):
+        return
+      cached_source_code_file = os.path.join(
+          CURRENT_RUN_DIR, src_location_file[1:])
+      gcov_file = cached_source_code_file + '.gcov'
+      if not os.path.exists(cached_source_code_file):
+        os.makedirs(os.path.dirname(cached_source_code_file), exist_ok=True)
+        shutil.copyfile(src_location_file, cached_source_code_file)
+        with open(gcov_file, 'w') as f:
+          # 'Source:' is relative to CURRENT_RUN_DIR
+          f.write(f'-:0:Source:{src_location_file[1:]}\n')
+      with open(gcov_file, 'a') as f:
+        f.write(f'1:{src_location_line}:\n')
+      self.update_ui.on_new_edge()
 
   def save_previous_interesting_input(self, inp: bytes):
     # sha1 as filename

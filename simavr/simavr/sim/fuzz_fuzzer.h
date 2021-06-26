@@ -11,13 +11,13 @@ extern "C" {
 void initialize_fuzzer(avr_t *avr, char *path_to_seeds, char *run_once_file, 
                        char* mutator_so_path);
 void initialize_mutator(Fuzzer *fuzzer, char* mutator_so_path);
-void initialize_seeds(CC_Array *previous_interesting_inputs, char *path_to_seeds);
-void add_seed_from_file(CC_Array *previous_interesting_inputs, char *file_path);
+void initialize_seeds(avr_t *avr, CC_Array *previous_interesting_inputs, char *path_to_seeds);
+void add_seed_from_file(avr_t *avr, CC_Array *previous_interesting_inputs, char *file_path);
 void add_previous_interesting_input(CC_Array *previous_interesting_inputs,
                                     char *buf, size_t buf_len);
 Input *get_random_previous_interesting_input(CC_Array *inputs);
 void generate_input(avr_t *avr, Fuzzer *fuzzer);
-uint32_t mutate(Input *input);
+uint32_t mutate(Input *input, size_t);
 void evaluate_input(avr_t *avr);
 
 #ifdef __cplusplus

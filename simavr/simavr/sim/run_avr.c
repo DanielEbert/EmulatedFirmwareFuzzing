@@ -132,6 +132,8 @@ int main(int argc, char *argv[]) {
   char *path_to_seeds_dir = NULL;
   char *mutator_so_path = NULL;
   int report_timeouts = 1;
+  // Input size in bytes
+  size_t max_input_length = 128;
 
   if (argc == 1)
     display_usage(basename(argv[0]));
@@ -243,6 +245,26 @@ int main(int argc, char *argv[]) {
         exit(1);
       }
       path_to_seeds_dir = argv[++pi];
+    } else if (!strcmp(argv[pi], "--max_input_length")) {
+      if (pi + 1 >= argc) {
+        fprintf(stderr,
+                "%s: missing mandatory argument for --max_input_length %s.\n",
+                argv[0], argv[pi]);
+        exit(1);
+      }
+      errno = 0;
+      char *i;
+      // The timeout value must be an unsigned integer.
+      max_input_length = strtoull(argv[++pi], &i, 10);
+      if (errno == ERANGE) {
+        perror("max_input_length too large: ");
+        exit(1);
+      }
+      if (max_input_length > 2048) {
+        printf("Warning: --max_input_length is set to %ld. This is probably "
+               "too much. In most cases you are good with values < 256.",
+               max_input_length);
+      }
     } else if (!strcmp(argv[pi], "--mutator_so_path")) {
       if (pi + 1 >= argc) {
         fprintf(stderr,
@@ -334,6 +356,7 @@ int main(int argc, char *argv[]) {
   }
   avr->timeout = timeout;
   avr->report_timeouts = report_timeouts;
+  avr->max_input_length = max_input_length;
   avr_init(avr);
   avr->log = (log > LOG_TRACE ? LOG_TRACE : log);
   avr->trace = trace;

@@ -8,7 +8,6 @@ import amoco
 from amoco.arch.core import type_control_flow 
 
 
-# TODOE: maybe refactor
 CURRENT_RUN_DIR = '/home/user/EFF/current_run'
 CRASHING_INPUTS_DIR = '/home/user/EFF/current_run/crashing_inputs'
 PREVIOUS_INTERESTING_INPUTS_DIR = '/home/user/EFF/current_run/previous_interesting_inputs'
@@ -37,7 +36,6 @@ class Fuzzer_Stats:
 class Process_Messages:
   def __init__(self):
     self.fuzzer_stats = Fuzzer_Stats()
-    self.move_old_data()
     self.update_ui = Update_UI(self, CURRENT_RUN_DIR)
     self.update_ui.start()
     self.path_to_emulated_executable = None
@@ -65,6 +63,7 @@ class Process_Messages:
     self.fuzzer_stats.fuzzer_start_time = time.time()
     self.fuzzer_stats.stats_update_time = time.time()
     self.path_to_emulated_executable = path
+    self.move_old_data()
     try:
       prog = amoco.load_program(path)
       self.disassembler = amoco.sa.lsweep(prog)

@@ -40,10 +40,11 @@ tests = [
 ]
 
 for test_dir, required_msg, flags in tests:
-  os.system("echo 'A' > input")
   os.chdir(test_dir)
+  os.system("echo 'A' > input")
   exit_code = os.system('make --silent')
   assert exit_code == 0, f'make returned exit code {exit_code}'
+  print(['../../simavr/simavr/run_avr' ,'-m', 'atmega2560'] + flags + ['src.ino.elf'])
   p = subprocess.run(['../../simavr/simavr/run_avr' ,'-m', 'atmega2560'] + flags + ['src.ino.elf'], stdout = subprocess.PIPE, stderr=subprocess.PIPE, env=test_env)
   assert required_msg in p.stdout, f'Test {test_dir} FAILED\nstdout for test {test_dir} did not include the required text: {required_msg}\nstdout was:\n{p.stdout}'
   print(f'***** Test {test_dir} SUCCESS')

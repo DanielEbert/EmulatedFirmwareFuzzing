@@ -10,7 +10,7 @@ test_env = os.environ.copy()
 test_env['LD_PRELOAD'] = '../../simavr/simavr/sim/patches/reset_on_loop_call.c.so'
 
 # TODO: on remote i dont have mutator. doesnt matter for now
-default_flags = ['--run_once_with', 'Makefile', '--mutator_so_path', '/home/user/EFF/simavr/simavr/mutators/libfuzzer/libfuzzer-mutator.so']
+default_flags = ['--run_once_with', 'input', '--mutator_so_path', '/home/user/EFF/simavr/simavr/mutators/libfuzzer/libfuzzer-mutator.so']
 
 tests = [
   (
@@ -40,6 +40,7 @@ tests = [
 ]
 
 for test_dir, required_msg, flags in tests:
+  os.system("echo 'A' > input")
   os.chdir(test_dir)
   exit_code = os.system('make --silent')
   assert exit_code == 0, f'make returned exit code {exit_code}'

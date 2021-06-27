@@ -103,7 +103,8 @@ int send_crash(avr_t *avr, Crash *crash) {
   Server_Connection *server_connection = avr->server_connection;
   char msg_ID = 2;
   uint32_t crashing_input_length = crash->crashing_input->buf_len;
-  uint32_t stack_frame_index = avr->trace_data->stack_frame_index;
+  // + 1 because we also send current PC
+  uint32_t stack_frame_index = avr->trace_data->stack_frame_index + 1;
   uint32_t body_size = 1 + 4 + 4 + 4 + crash->crashing_input->buf_len + 4 +
                        stack_frame_index * 4;
   if (send_header(server_connection, msg_ID, body_size) < 0 ||
@@ -117,11 +118,16 @@ int send_crash(avr_t *avr, Crash *crash) {
     return -1;
   }
   // Send program counters of stackframes
-  for (int i = 0; i < stack_frame_index; i++) {
+  // -1 because we send current PC after loop
+  for (int i = 0; i < stack_frame_index - 1; i++) {
     if (send_raw(server_connection, &(avr->trace_data->stack_frame[i].pc), 4) <
         0) {
       return -1;
     }
+  }
+  // Send current PC
+  if (send_raw(server_connection, &(crash->crashing_addr), 4) < 0) {
+    return -1;
   }
   return 0;
 }

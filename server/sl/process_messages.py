@@ -85,7 +85,6 @@ class Process_Messages:
       try:
         instr = next(disass)
       except Exception as e:
-        print(f'Coverage Explorer update exception', e)
         break
       instructions.append(instr)
       if instr.type == type_control_flow and 'CALL' not in instr.mnemonic:

@@ -2,8 +2,10 @@
 #include "fuzz_config.h"
 #include "fuzz_patch_instructions.h"
 #include "fuzz_server_notify.h"
-#include "sim_gdb.h"
+#include "sim_core.h"
+#include "sim_network.h"
 #include <stdio.h>
+#include <unistd.h>
 
 void initialize_crash_handler(avr_t *avr) {
   // unique crashes
@@ -92,7 +94,7 @@ void crash_found(avr_t *avr, avr_flashaddr_t crashing_addr,
 
   switch (crash_id) {
   case 0:
-    printf("Stack Smashing Detected PC %04x\n", crashing_addr);
+    printf("Stack Smashing Detected PC 0x%04x\n", crashing_addr);
     break;
   case 1:
     printf("New unique use of uninitialized memory found at PC 0x%04x, with "
@@ -100,22 +102,17 @@ void crash_found(avr_t *avr, avr_flashaddr_t crashing_addr,
            crashing_addr, origin_addr);
     break;
   case 2:
-    printf("Timeout found at pc: 0x%04x\n", crashing_addr);
+    printf("Timeout found at PC 0x%04x\n", crashing_addr);
     break;
   case 3:
     printf("Invalid write address PC 0x%04x\n", crashing_addr);
     break;
   case 4:
-    printf("Bad jump found at pc: 0x%04x\n", crashing_addr);
+    printf("Bad jump found at PC 0x%04x\n", crashing_addr);
     break;
   case 5:
-    printf("Reading past end of flash found at pc: 0x%04x\n", crashing_addr);
+    printf("Reading past end of flash found at PC 0x%04x\n", crashing_addr);
     break;
-  }
-
-  // TODOE
-  if (avr->gdb) {
-    avr_gdb_handle_watchpoints(avr, crashing_addr, AVR_GDB_WATCH_READ);
   }
 
   Crash *crash = malloc(sizeof(Crash));
@@ -139,11 +136,11 @@ void crash_found(avr_t *avr, avr_flashaddr_t crashing_addr,
   send_crash(avr, crash);
 }
 
-// key comparator function which returns true if the keys are identical
+// TODOE check if return 1 or 0 on equal
 int crash_compare(const void *key1, const void *key2) {
   CrashKey *e1 = (CrashKey *)key1;
   CrashKey *e2 = (CrashKey *)key2;
-  return (e1->crash_id == e2->crash_id &&
-          e1->crashing_addr == e2->crashing_addr &&
-          e1->origin_addr == e2->origin_addr);
+  return !(e1->crash_id == e2->crash_id &&
+           e1->crashing_addr == e2->crashing_addr &&
+           e1->origin_addr == e2->origin_addr);
 }

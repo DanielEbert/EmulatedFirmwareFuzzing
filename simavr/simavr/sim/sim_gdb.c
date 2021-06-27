@@ -486,6 +486,7 @@ gdb_handle_command(
 			uint32_t kind, addr, len;
 			int set = (command == 'Z');
 			sscanf(cmd, "%d,%x,%x", &kind, &addr, &len);
+			addr &= ~0x800000;
 //			printf("breakpoint %d, %08x, %08x\n", kind, addr, len);
 			switch (kind) {
 				case 0:	// software breakpoint

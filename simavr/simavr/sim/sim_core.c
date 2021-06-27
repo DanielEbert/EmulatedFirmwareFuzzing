@@ -611,9 +611,6 @@ run_one_again:
    * this traces spurious reset or bad jumps
    */
   if (avr->pc >= avr->codeend || _avr_sp_get(avr) > avr->ramend) {
-    //		avr->trace = 1;
-    // STATE("RESET\n");
-    // crash(avr); Instead of crashing, we want to reset
     bad_jump_found(avr, avr->pc);
     fuzz_reset(avr);
   }
@@ -625,8 +622,6 @@ run_one_again:
    * the end of the flash.
    */
   if (unlikely(avr->pc >= avr->flashend)) {
-    // STATE("CRASH\n");
-    // crash(avr);
     reading_past_end_of_flash_found(avr, avr->pc);
     fuzz_reset(avr);
     return 0;

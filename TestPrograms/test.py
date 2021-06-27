@@ -14,7 +14,7 @@ default_flags = ['--run_once_with', 'Makefile', '--mutator_so_path', '/home/user
 
 tests = [
   (
-    'uninitialized7', b'SF flags not set', default_flags
+    'uninitialized7', b'uninitialized memory found', default_flags
   ),
   (
     'stack_buffer_overflow', b'Stack Smashing Detected', default_flags
@@ -23,16 +23,16 @@ tests = [
     'stack_buffer_overflow_after_ret', b'Stack Smashing Detected', default_flags
   ),
   (
-    'uninitialized6', b'SF flags not set', default_flags
+    'uninitialized6', b'uninitialized memory found', default_flags
   ),
   (
-    'uninitialized4', b'SF flags not set', default_flags
+    'uninitialized4', b'uninitialized memory found', default_flags
   ),
   (
-    'uninitialized2', b'SF flags not set', default_flags
+    'uninitialized2', b'uninitialized memory found', default_flags
   ),
   (
-    'uninitialized', b'SF flags not set', default_flags
+    'uninitialized', b'uninitialized memory found', default_flags
   ),
   (
     'timeout', b'Timeout found', default_flags + ['--timeout', '1300']

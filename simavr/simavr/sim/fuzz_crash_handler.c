@@ -98,7 +98,7 @@ void crash_found(avr_t *avr, avr_flashaddr_t crashing_addr,
     break;
   case 1:
     printf("New unique use of uninitialized memory found at PC 0x%04x, with "
-           "origin 0x%04x",
+           "origin 0x%04x\n",
            crashing_addr, origin_addr);
     break;
   case 2:

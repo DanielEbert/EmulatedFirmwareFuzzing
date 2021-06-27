@@ -2,6 +2,7 @@
 #include "fuzz_config.h"
 #include "fuzz_patch_instructions.h"
 #include "fuzz_server_notify.h"
+#include "sim_gdb.h"
 #include <stdio.h>
 
 void initialize_crash_handler(avr_t *avr) {
@@ -110,6 +111,11 @@ void crash_found(avr_t *avr, avr_flashaddr_t crashing_addr,
   case 5:
     printf("Reading past end of flash found at pc: 0x%04x\n", crashing_addr);
     break;
+  }
+
+  // TODOE
+  if (avr->gdb) {
+    avr_gdb_handle_watchpoints(avr, crashing_addr, AVR_GDB_WATCH_READ);
   }
 
   Crash *crash = malloc(sizeof(Crash));

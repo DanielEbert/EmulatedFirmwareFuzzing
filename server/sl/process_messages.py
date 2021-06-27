@@ -30,7 +30,7 @@ class Fuzzer_Stats:
     self.stack_buffer_overfow_count = 0
     self.stats_update_time = None
     # average of the last 10 seconds
-    self.average_inputs_executed_last_10_seconds = 0
+    self.inputs_executed_per_second = 0
 
 
 class Process_Messages:
@@ -189,7 +189,7 @@ class Process_Messages:
     assert current_time > self.fuzzer_stats.stats_update_time
     time_delta = current_time - self.fuzzer_stats.stats_update_time
     executed_inputs_delta = inputs_executed - self.fuzzer_stats.inputs_executed
-    self.fuzzer_stats.average_inputs_executed_last_10_seconds = executed_inputs_delta / time_delta
+    self.fuzzer_stats.inputs_executed_per_second = executed_inputs_delta / time_delta
 
     self.fuzzer_stats.stats_update_time = current_time
     self.fuzzer_stats.inputs_executed = inputs_executed

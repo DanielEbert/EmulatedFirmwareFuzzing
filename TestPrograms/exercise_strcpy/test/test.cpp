@@ -2,7 +2,7 @@
 #include <unity.h>
 #include "main.cpp"
 
-volatile char fuzz_input[256];
+char fuzz_input[256];
 volatile uint16_t fuzz_input_length;
 
 // ...

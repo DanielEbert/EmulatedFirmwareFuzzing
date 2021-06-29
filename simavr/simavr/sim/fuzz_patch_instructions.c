@@ -88,14 +88,25 @@ void check_run_patch(avr_t *avr) {
 }
 
 uint32_t get_symbol_address(char *symbol_name, avr_t *avr) {
-  if (!cc_hashtable_contains_key(avr->symbols, symbol_name)) {
+  // 0 if no symbol found, 1 if no const, 2 if const
+  int prefix_type = 0;
+  // Symbol name has prefix '_ZL10' if the symbol is a 'const'.
+  char prefix_symbol[517] = "_ZL10";
+  strncpy(prefix_symbol + 5, symbol_name, 511);
+  if (cc_hashtable_contains_key(avr->symbols, symbol_name)) {
+    prefix_type = 1;
+  } else if (cc_hashtable_contains_key(avr->symbols, prefix_symbol)) {
+    prefix_type = 2;
+  } else {
     // Because this function is called during setup, we can exit here to give
     // fast feedback to the user
     fprintf(stderr, "get_symbol_name Error: No such symbol: %s\n", symbol_name);
     exit(1);
   }
   void *entry;
-  if (cc_hashtable_get(avr->symbols, symbol_name, &entry) != CC_OK) {
+  if (cc_hashtable_get(avr->symbols,
+                       prefix_type == 1 ? symbol_name : prefix_symbol,
+                       &entry) != CC_OK) {
     fprintf(stderr, "Failed to retrieve hashtable value for symbol %s\n",
             symbol_name);
     exit(1);

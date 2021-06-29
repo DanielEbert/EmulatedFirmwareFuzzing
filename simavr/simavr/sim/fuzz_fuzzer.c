@@ -84,15 +84,10 @@ void initialize_seeds(avr_t *avr, CC_Array *previous_interesting_inputs,
       continue;
     } // we can now safely call strcpy
     strcpy(path_to_seed_file + path_to_seeds_len, seeds_dir_entry->d_name);
-    // printf("Adding file %s to the previous interesting inputs\n",
-    //       path_to_seed_file);
     add_seed_from_file(avr, previous_interesting_inputs, path_to_seed_file);
   }
 
   closedir(seeds_dir);
-  // printf("X seed files added to the list of previous interesting inputs");
-
-  // TODO: also skip ones that exceed max input size
 }
 
 void initialize_mutator(Fuzzer *fuzzer, char *mutator_so_path) {

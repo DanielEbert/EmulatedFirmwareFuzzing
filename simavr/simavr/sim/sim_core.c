@@ -1715,11 +1715,9 @@ run_one_again:
     } else {
       // If it is used to make space for stack variables, set shadow as
       // defined
-      // TODOE: I'll have to think about this. both arduinojson and marlin
-      // require this '0' (i write '1', i prob meant '0')
       uint16_t sp = _stack_return_address;
       for (int i = 0; i < avr->address_size; i++, sp--) {
-        avr->shadow[sp] = 0;
+        avr->shadow[sp] = 1;
       }
     }
   } break;
@@ -1767,7 +1765,7 @@ run_one_again:
       }
       edge_triggered(avr, avr->pc, new_pc);
       if (s[SF] == 0) {
-        printf("SF flags not set at pc %x with origin %x\n", avr->pc,
+        printf("SF flags not set at pc 0x%x with origin 0x%x\n", avr->pc,
                sprop[SF]);
         uninitialized_value_used_found(avr, avr->pc, sprop[SF]);
       }

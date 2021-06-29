@@ -1,8 +1,0 @@
-Stackframe at crash:
-    #0 0x170 in __do_global_ctors at ??:?
-    #1 0xd9e in main at /home/user/.platformio/packages/framework-arduino-avr/cores/arduino/main.cpp:43
-    #2 0xc8e in setup at /home/user/EFF/TestPrograms/exercise_strcpy_solution/test/test.cpp:15
-    #3 0xc66 in UnityDefaultTestRun at /home/user/.platformio/packages/tool-unity/unity.c:1817
-    #4 0xcde in _Z18test_process_inputv at /home/user/EFF/TestPrograms/exercise_strcpy_solution/test/test.cpp:9
-    #5 0xcb2 in _Z13process_inputPc at /home/user/EFF/TestPrograms/exercise_strcpy_solution/src/main.cpp:5
-    #6 0xf50 in strcpy at ??:?

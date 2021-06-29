@@ -71,11 +71,11 @@ class Process_Messages:
       print(f'Disassembly of file {path} failed. Exception:', e)
       self.disassembler = None
 
-  def update_coverage(self, from_addr: int, to_addr: int):
+  def update_coverage(self, to_addr: int):
+    self.fuzzer_stats.edges_found += 1
     if self.path_to_emulated_executable is None:
       print("Warning: Client has not sent path_to_emulated_executable yet.")
       return
-    self.fuzzer_stats.edges_found += 1
     if self.disassembler is None:
       print(f"Warning: Disassemby of {self.path_to_emulated_executable} failed.")
       return
@@ -89,21 +89,22 @@ class Process_Messages:
       instructions.append(instr)
       if instr.type == type_control_flow and 'CALL' not in instr.mnemonic:
         break
+
     for i in instructions:
       addr = i.address.value
       src_location = self.addr_to_src(self.path_to_emulated_executable, addr)
       src_location = src_location.decode('UTF-8').strip()
       #print(src_location)
       if src_location.startswith('??:'):
-        return
+         break
       # decode and remove trailing newline
       # if not key exists: mkdir -p of basedir and cp src. check if src exists
       if not os.path.isabs(src_location) or not src_location[0] == '/':
         print(f'no absolute path {src_location}')
-        return
+        break
       src_location_file, src_location_line = src_location.split(':')
       if not os.path.exists(src_location_file):
-        return
+        break
       cached_source_code_file = os.path.join(
           CURRENT_RUN_DIR, src_location_file[1:])
       gcov_file = cached_source_code_file + '.gcov'
@@ -115,7 +116,7 @@ class Process_Messages:
           f.write(f'-:0:Source:{src_location_file[1:]}\n')
       with open(gcov_file, 'a') as f:
         f.write(f'1:{src_location_line}:\n')
-      self.update_ui.on_new_edge()
+    self.update_ui.on_new_edge()
 
   def save_previous_interesting_input(self, inp: bytes):
     # sha1 as filename
@@ -172,7 +173,6 @@ class Process_Messages:
       assert False, f'Unknown crashing input ID {crash_ID}'
     file_path = os.path.join(CRASHING_INPUTS_DIR, filename)
     if os.path.exists(file_path):
-      # print(f'Skipping duplicate crashing input file: {filename}')
       return
     with open(file_path, 'wb') as f:
       f.write(inp)

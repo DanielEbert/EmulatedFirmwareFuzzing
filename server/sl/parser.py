@@ -51,7 +51,7 @@ class Parser(mp.Process):
       assert len(body_raw) - 12 == input_len
       inp = body_raw[12:]
       self.process_messages.save_previous_interesting_input(inp)
-      self.process_messages.update_coverage(from_addr, to_addr)
+      self.process_messages.update_coverage(to_addr)
     elif msg_ID == 2:
       # crash event
       i = 0

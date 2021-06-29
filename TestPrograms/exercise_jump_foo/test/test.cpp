@@ -2,7 +2,9 @@
 #include <unity.h>
 #include "main.cpp"
 
-volatile char fuzz_input[256];
+char fuzz_input[256];
+// We need volatile here, because otherwise the compiler optimizes this
+// value out.
 volatile uint16_t fuzz_input_length;
 
 void test_parse(void) {

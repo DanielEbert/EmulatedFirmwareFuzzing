@@ -2,9 +2,6 @@
 #include "sim_avr.h"
 #include <stdio.h>
 
-void write_fuzz_input_global(void *);
-void set_shadow_map(avr_flashaddr_t start, size_t size, uint8_t value,
-                    avr_t *avr);
 
 void setup_patches(avr_t *avr) {
   // patch_instruction(get_symbol_address("setup", avr), print_current_input,

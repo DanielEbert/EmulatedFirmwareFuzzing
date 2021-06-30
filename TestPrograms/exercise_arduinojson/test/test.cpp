@@ -14,7 +14,6 @@ void test_deserialize_and_serialize(void) {
 }
 
 void setup() {
-  Serial.begin(9600);
   UNITY_BEGIN();
   RUN_TEST(test_deserialize_and_serialize);
   UNITY_END();

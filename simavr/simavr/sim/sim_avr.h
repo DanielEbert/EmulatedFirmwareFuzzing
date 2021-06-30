@@ -412,6 +412,8 @@ typedef struct avr_t {
   // Key is vaddr where bug was first noticed. Value is struct Crash
   CC_HashTable *unique_crashes;
 
+  CC_HashTable *SUT_state;
+
   // For Sanitizers
   int disable_buffer_overflow_sanitizer;
   avr_flashaddr_t stackframe_min_sp;
@@ -427,6 +429,8 @@ typedef struct avr_kind_t {
 
 // a symbol loaded from the .elf file
 typedef struct avr_symbol_t {
+  // size in bytes
+  size_t size;
   uint32_t addr;
   const char symbol[0];
 } avr_symbol_t;

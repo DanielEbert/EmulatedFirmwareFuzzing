@@ -9,12 +9,16 @@
 
 void initialize_patch_instructions(avr_t *avr) {
   Patch_Side_Effects *patch_side_effects = malloc(sizeof(Patch_Side_Effects));
+  if (patch_side_effects == NULL) {
+    fprintf(stderr, "ERROR: malloc failed\n");
+    exit(1);
+  }
   patch_side_effects->run_return_instruction = 0;
   avr->patch_side_effects = patch_side_effects;
 
-  // TODOE make this part of avr_t. currently its a global variable
   patched_instructions = NULL;
 
+  setup_state_dictionary(avr);
   setup_patches(avr);
 
   // patch_instruction(0x87c, test_patch_function, avr);
@@ -38,6 +42,21 @@ void initialize_patch_instructions(avr_t *avr) {
   // patch_instruction(0x67e, test_reset, avr);
 }
 
+void setup_state_dictionary(avr_t *avr) {
+  CC_HashTableConf config;
+  cc_hashtable_conf_init(&config);
+  config.key_length = sizeof(StateKey);
+  config.hash = GENERAL_HASH;
+  config.key_compare = state_key_compare;
+
+  CC_HashTable *state;
+  if (cc_hashtable_new_conf(&config, &state) != CC_OK) {
+    printf("ERROR: state dictionary allocation failed. Exiting...\n");
+    exit(1);
+  }
+  avr->SUT_state = state;
+}
+
 void setup_patches(avr_t *avr) { printf("Using no patches.\n"); }
 
 int patch_instruction(avr_flashaddr_t vaddr, void *patch_pointer, void *arg) {
@@ -56,6 +75,10 @@ patched_instruction *get_or_create_patched_instruction(avr_flashaddr_t key) {
     // Set empty list as value for key target_vaddr in vaddr_hooks_table
     Patch *patch = NULL;
     entry = malloc(sizeof(patched_instruction));
+    if (entry == NULL) {
+      fprintf(stderr, "ERROR: malloc failed\n");
+      exit(1);
+    }
     entry->vaddr = key;
     entry->patches = patch;
     HASH_ADD_UINT32(patched_instructions, vaddr, entry);
@@ -66,6 +89,10 @@ patched_instruction *get_or_create_patched_instruction(avr_flashaddr_t key) {
 
 Patch *create_function_patch(void *patch_pointer, void *arg) {
   Patch *entry = malloc(sizeof(Patch));
+  if (entry == NULL) {
+    fprintf(stderr, "ERROR: malloc failed\n");
+    exit(1);
+  }
   entry->patch_pointer = patch_pointer;
   entry->arg = arg;
   entry->next = 0;
@@ -81,8 +108,6 @@ void check_run_patch(avr_t *avr) {
     DL_FOREACH(patch->patches, t) {
       void (*s)() = t->patch_pointer;
       (*s)(t->arg);
-      // TODOE
-      // exit(3);
     }
   }
 }
@@ -120,6 +145,18 @@ void write_to_ram(uint32_t dst, void *src, size_t num_bytes, avr_t *avr) {
   memcpy(avr->data + dst, src, num_bytes);
 
   set_shadow_map(dst, num_bytes, 1, avr);
+}
+
+uint64_t read_from_ram(uint32_t addr, size_t num_bytes, avr_t *avr) {
+  // For AVR, ELF symbols have a 0x800000 offset if the value is in RAM.
+  // avr->data is start of a buffer that stores virtual RAM of emulated process.
+  uint8_t *src = avr->data + (addr % 0x800000);
+  uint64_t ret = 0;
+  for (int i = num_bytes - 1; i >= 0; i--) {
+    ret <<= 1;
+    ret += src[i];
+  }
+  return ret;
 }
 
 void set_shadow_map(avr_flashaddr_t start, size_t size, uint8_t value,
@@ -172,7 +209,7 @@ void fuzz_reset(void *arg) {
 }
 
 // TODOE: REMOVE
-void override_args(void *arg) {
+void test_override_args(void *arg) {
   avr_t *avr = (avr_t *)arg;
 
   uint16_t input_length = avr->fuzzer->current_input->buf_len;
@@ -212,4 +249,141 @@ void write_fuzz_input_global(void *arg) {
       avr->fuzzer->current_input->buf_len % 256,
       (avr->fuzzer->current_input->buf_len >> 8) % 256};
   write_to_ram(length_addr, length_addr_little_endian, 2, avr);
+}
+
+StatePatch *create_state_patch(char *symbol_name, enum StatePatchWhen when,
+                               avr_t *avr) {
+  StatePatch *state_patch = malloc(sizeof(StatePatch));
+  if (state_patch == NULL) {
+    fprintf(stderr, "ERROR: malloc failed\n");
+    exit(1);
+  }
+  state_patch->state_patch_when = when;
+  state_patch->avr = avr;
+
+  if (!cc_hashtable_contains_key(avr->symbols, symbol_name)) {
+    // Because this function is called during setup, we can exit here to give
+    // fast feedback to the user
+    fprintf(stderr, "add_state Error: No such symbol: %s\n", symbol_name);
+    exit(1);
+  }
+  void *entry;
+  if (cc_hashtable_get(avr->symbols, symbol_name, &entry) != CC_OK) {
+    fprintf(stderr, "Failed to retrieve hashtable value for symbol %s\n",
+            symbol_name);
+    exit(1);
+  }
+  state_patch->symbol = (avr_symbol_t *)entry;
+  return state_patch;
+}
+
+/*
+state dictionary
+key = (cur_pc, symbol_addr, StatePatchWhen)
+*/
+void add_state(void *arg) {
+  StatePatch *state_patch = (StatePatch *)arg;
+  avr_t *avr = state_patch->avr;
+  StateKey *state_key = malloc(sizeof(StateKey));
+  if (state_key == NULL) {
+    fprintf(stderr, "ERROR: malloc failed\n");
+    exit(1);
+  }
+  state_key->current_pc = avr->pc;
+  state_key->symbol_addr = state_patch->symbol->addr;
+  state_key->when = state_patch->state_patch_when;
+
+  void *entry = NULL;
+  // Check if state exists already
+  if (!cc_hashtable_contains_key(avr->SUT_state, state_key)) {
+    // if not, create new entry and add to state dictionary
+    switch (state_patch->state_patch_when) {
+    case MAX:
+    case MIN:
+      // MAX/MIN supports unsigned integers with a maxium bitlength of 64.
+      // Even if the symbol size is less than 8 bytes (e.g. if the state is a
+      // uint32_t), we store the maximum value in a uint64_t so we have less
+      // branches.
+      if (state_patch->symbol->size > 8) {
+        fprintf(stderr,
+                "Warning: state with state_patch_when supports a maximum size "
+                "of 8 bytes. Your ELF symbol %s has a size of %ld bytes\n",
+                state_patch->symbol->symbol, state_patch->symbol->size);
+        free(state_key);
+        break;
+      }
+      uint64_t *min_or_max = malloc(sizeof(uint64_t));
+      if (min_or_max == NULL) {
+        fprintf(stderr, "ERROR: malloc failed\n");
+        exit(1);
+      }
+      *min_or_max = read_from_ram(state_patch->symbol->addr,
+                                  state_patch->symbol->size, avr);
+      if (cc_hashtable_add(avr->SUT_state, state_key, min_or_max) != CC_OK) {
+        fprintf(stderr, "WARNING: Failed to add state to state hashtable");
+        free(state_key);
+        free(min_or_max);
+      }
+      break;
+    default:
+      fprintf(stderr,
+              "Warning: Unknown state_patch_when value for state key with "
+              "PC 0x%04x\n",
+              avr->pc);
+      free(state_key);
+      break;
+    }
+    return;
+  }
+
+  if (cc_hashtable_get(avr->SUT_state, state_key, &entry) != CC_OK) {
+    fprintf(stderr,
+            "Warning: Failed to retrieve hashtable value for state key with "
+            "PC 0x%04x\n",
+            avr->pc);
+    free(state_key);
+    return;
+  }
+
+  // if previous state exists, compare the previous state with the current
+  // state (i.e. the current_value)
+  uint64_t current_value;
+  // Check if new state. if yes, avr->interestin = 1
+  switch (state_patch->state_patch_when) {
+  case MIN:
+    current_value = read_from_ram(state_patch->symbol->addr,
+                                  state_patch->symbol->size, avr);
+    if (current_value < *(uint64_t *)entry) {
+      printf("New MIN found for state %s from %lu to %lu\n",
+             state_patch->symbol->symbol, *(uint64_t *)entry, current_value);
+      *(uint64_t *)entry = current_value;
+      avr->input_has_reached_new_coverage = 1;
+    }
+    break;
+  case MAX:
+    current_value = read_from_ram(state_patch->symbol->addr,
+                                  state_patch->symbol->size, avr);
+    if (current_value > *(uint64_t *)entry) {
+      printf("New state MAX from %lu to %lu\n", *(uint64_t *)entry,
+             current_value);
+      *(uint64_t *)entry = current_value;
+      avr->input_has_reached_new_coverage = 1;
+    }
+    break;
+
+  default:
+    fprintf(stderr,
+            "Warning: Unknown state_patch_when value for state key with "
+            "PC 0x%04x\n",
+            avr->pc);
+    break;
+  }
+  free(state_key);
+}
+
+int state_key_compare(const void *key1, const void *key2) {
+  StateKey *e1 = (StateKey *)key1;
+  StateKey *e2 = (StateKey *)key2;
+  return !(e1->current_pc == e2->current_pc &&
+           e1->symbol_addr == e2->symbol_addr && e1->when == e2->when);
 }

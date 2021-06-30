@@ -350,7 +350,8 @@ int elf_read_firmware(const char *file, elf_firmware_t *firmware,
           avr_symbol_t *s = malloc(sizeof(avr_symbol_t) + strlen(name) + 1);
           strcpy((char *)s->symbol, name);
           s->addr = sym.st_value;
-          // printf("Symbol: %x - %s\n", s->addr, name);
+          s->size = sym.st_size;
+          // printf("Symbol: %x - %s, size %ld\n", s->addr, name, s->size);
           if (!(firmware->symbolcount % 8))
             firmware->symbol =
                 realloc(firmware->symbol, (firmware->symbolcount + 8) *

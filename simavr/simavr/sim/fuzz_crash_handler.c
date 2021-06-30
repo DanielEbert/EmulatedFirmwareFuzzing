@@ -17,7 +17,7 @@ void initialize_crash_handler(avr_t *avr) {
 
   CC_HashTable *crashes;
   if (cc_hashtable_new_conf(&config, &crashes) != CC_OK) {
-    printf("ERROR: coverage set allocation failed. Exiting...\n");
+    printf("ERROR: crash dictionary allocation failed. Exiting...\n");
     exit(1);
   }
   avr->unique_crashes = crashes;
@@ -136,7 +136,6 @@ void crash_found(avr_t *avr, avr_flashaddr_t crashing_addr,
   send_crash(avr, crash);
 }
 
-// TODOE check if return 1 or 0 on equal
 int crash_compare(const void *key1, const void *key2) {
   CrashKey *e1 = (CrashKey *)key1;
   CrashKey *e2 = (CrashKey *)key2;

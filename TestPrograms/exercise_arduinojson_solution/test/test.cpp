@@ -20,6 +20,7 @@ void test_deserialize_and_serialize(void) {
   // TEST_ASSERT_EQUAL_INT(strlen(fuzz_input), num_bytes_written);
   // here, because for example if you deserialize and serialize the string '00', 
   // the result is '0' because the string is interpreted as a number.
+  // In other words, the deserializeJson 'function' is surjective.
 }
 
 void setup() {

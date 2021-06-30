@@ -62,6 +62,7 @@ void write_fuzz_input_global(void *arg);
 StatePatch *create_state_patch(char *symbol_name, enum StatePatchWhen when,
                                avr_t *avr);
 int state_key_compare(const void *key1, const void *key2);
+int uint64_t_compare(const void *key1, const void *key2);
 void add_state(void *arg);
 
 #ifdef __cplusplus

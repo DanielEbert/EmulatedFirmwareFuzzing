@@ -4,6 +4,7 @@
 #include "fuzz_server_notify.h"
 #include "fuzz_util.h"
 #include "sim_avr.h"
+#include <collectc/cc_hashset.h>
 #include <stdio.h>
 #include <unistd.h>
 
@@ -293,26 +294,27 @@ void add_state(void *arg) {
   state_key->symbol_addr = state_patch->symbol->addr;
   state_key->when = state_patch->state_patch_when;
 
-  void *entry = NULL;
+  // This state system supports unsigned integers with a maxium bitlength of 64.
+  if (state_patch->symbol->size > 8) {
+    fprintf(stderr,
+            "ERROR: state with state_patch_when supports a maximum size "
+            "of 8 bytes. Your ELF symbol %s has a size of %ld bytes\n",
+            state_patch->symbol->symbol, state_patch->symbol->size);
+    exit(1);
+  }
+
+  uint64_t *min_or_max;
+  CC_HashSetConf config;
   // Check if state exists already
   if (!cc_hashtable_contains_key(avr->SUT_state, state_key)) {
-    // if not, create new entry and add to state dictionary
+    // if not, create new entry and add it to the state dictionary
     switch (state_patch->state_patch_when) {
     case MAX:
     case MIN:
-      // MAX/MIN supports unsigned integers with a maxium bitlength of 64.
       // Even if the symbol size is less than 8 bytes (e.g. if the state is a
       // uint32_t), we store the maximum value in a uint64_t so we have less
       // branches.
-      if (state_patch->symbol->size > 8) {
-        fprintf(stderr,
-                "Warning: state with state_patch_when supports a maximum size "
-                "of 8 bytes. Your ELF symbol %s has a size of %ld bytes\n",
-                state_patch->symbol->symbol, state_patch->symbol->size);
-        free(state_key);
-        break;
-      }
-      uint64_t *min_or_max = malloc(sizeof(uint64_t));
+      min_or_max = malloc(sizeof(uint64_t));
       if (min_or_max == NULL) {
         fprintf(stderr, "ERROR: malloc failed\n");
         exit(1);
@@ -320,9 +322,35 @@ void add_state(void *arg) {
       *min_or_max = read_from_ram(state_patch->symbol->addr,
                                   state_patch->symbol->size, avr);
       if (cc_hashtable_add(avr->SUT_state, state_key, min_or_max) != CC_OK) {
-        fprintf(stderr, "WARNING: Failed to add state to state hashtable");
-        free(state_key);
-        free(min_or_max);
+        fprintf(stderr, "ERROR: Failed to add state to state hashtable");
+        exit(1);
+      }
+      break;
+    case UNIQUE:
+      cc_hashset_conf_init(&config);
+      config.key_length = sizeof(uint64_t);
+      config.hash = GENERAL_HASH;
+      config.key_compare = uint64_t_compare;
+      CC_HashSet *unique_hashset;
+      if (cc_hashset_new_conf(&config, &unique_hashset) != CC_OK) {
+        printf("ERROR: 'unique' state hashset allocation failed. Exiting...\n");
+        exit(1);
+      }
+      if (cc_hashtable_add(avr->SUT_state, state_key, unique_hashset) !=
+          CC_OK) {
+        fprintf(stderr, "ERROR: Failed to add state to state hashtable");
+        exit(1);
+      }
+      uint64_t *current = malloc(sizeof(uint64_t));
+      if (current == NULL) {
+        fprintf(stderr, "ERROR: malloc failed\n");
+        exit(1);
+      }
+      *current = read_from_ram(state_patch->symbol->addr,
+                               state_patch->symbol->size, avr);
+      if (cc_hashset_add(unique_hashset, current) != CC_OK) {
+        fprintf(stderr, "ERROR: Failed to add state to state hashset");
+        exit(1);
       }
       break;
     default:
@@ -336,6 +364,7 @@ void add_state(void *arg) {
     return;
   }
 
+  void *entry = NULL;
   if (cc_hashtable_get(avr->SUT_state, state_key, &entry) != CC_OK) {
     fprintf(stderr,
             "Warning: Failed to retrieve hashtable value for state key with "
@@ -347,12 +376,11 @@ void add_state(void *arg) {
 
   // if previous state exists, compare the previous state with the current
   // state (i.e. the current_value)
-  uint64_t current_value;
+  uint64_t current_value =
+      read_from_ram(state_patch->symbol->addr, state_patch->symbol->size, avr);
   // Check if new state. if yes, avr->interestin = 1
   switch (state_patch->state_patch_when) {
   case MIN:
-    current_value = read_from_ram(state_patch->symbol->addr,
-                                  state_patch->symbol->size, avr);
     if (current_value < *(uint64_t *)entry) {
       printf("New MIN found for state %s from %lu to %lu\n",
              state_patch->symbol->symbol, *(uint64_t *)entry, current_value);
@@ -361,8 +389,6 @@ void add_state(void *arg) {
     }
     break;
   case MAX:
-    current_value = read_from_ram(state_patch->symbol->addr,
-                                  state_patch->symbol->size, avr);
     if (current_value > *(uint64_t *)entry) {
       printf("New state MAX from %lu to %lu\n", *(uint64_t *)entry,
              current_value);
@@ -370,7 +396,19 @@ void add_state(void *arg) {
       avr->input_has_reached_new_coverage = 1;
     }
     break;
-
+  case UNIQUE:
+    if (cc_hashset_contains(entry, &current_value)) {
+      break;
+    }
+    printf("New state UNIQUE with value %lu\n", current_value);
+    uint64_t *current_value_heap = malloc(sizeof(uint64_t));
+    *current_value_heap = current_value;
+    if (cc_hashset_add(entry, current_value_heap) != CC_OK) {
+      fprintf(stderr, "ERROR: Failed to add state to state hashset");
+      exit(1);
+    }
+    avr->input_has_reached_new_coverage = 1;
+    break;
   default:
     fprintf(stderr,
             "Warning: Unknown state_patch_when value for state key with "
@@ -386,4 +424,10 @@ int state_key_compare(const void *key1, const void *key2) {
   StateKey *e2 = (StateKey *)key2;
   return !(e1->current_pc == e2->current_pc &&
            e1->symbol_addr == e2->symbol_addr && e1->when == e2->when);
+}
+
+int uint64_t_compare(const void *key1, const void *key2) {
+  uint64_t *e1 = (uint64_t *)key1;
+  uint64_t *e2 = (uint64_t *)key2;
+  return !(*e1 == *e2);
 }

@@ -40,4 +40,11 @@ void myIRQ5() {
 void myIRQ6() {
   Serial.println("triggered6");
 }
-void loop(){}
+
+void wait_for_reset() {
+}
+
+void loop(){
+  delay(200);
+  wait_for_reset();
+}

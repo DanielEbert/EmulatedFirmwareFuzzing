@@ -7,6 +7,6 @@ void print_hello(void *arg) {
 }
 
 void setup_patches(avr_t *avr) {
-  patch_instruction(get_symbol_address("setup", avr), print_hello, NULL);
+  patch_function("setup", print_hello, NULL, avr);
 }
 

@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <unistd.h>
 
+int avr_raise_interrupt(avr_t *avr, avr_int_vector_t *vector);
+
 void initialize_patch_instructions(avr_t *avr) {
   Patch_Side_Effects *patch_side_effects = malloc(sizeof(Patch_Side_Effects));
   if (patch_side_effects == NULL) {
@@ -21,26 +23,6 @@ void initialize_patch_instructions(avr_t *avr) {
 
   setup_state_dictionary(avr);
   setup_patches(avr);
-
-  // patch_instruction(0x87c, test_patch_function, avr);
-  // patch_instruction(0x8fe, test_patch_function, avr);
-  // patch_instruction(0x694, test_patch_function, avr);
-  // patch_instruction(0x90e, test_reset, avr);
-
-  // test2
-  // patch_instruction(0x4e2, test_patch_function, avr);
-  // patch_instruction(0x916, test_reset, avr);
-
-  // deserializeJson
-
-  // patch_instruction(0x370c, override_args, avr);
-  // patch_instruction(0x37d4, test_reset, avr);
-
-  // irq tests
-  // patch_instruction(0x5f4, noop, avr);
-  // patch_instruction(0x606, test_raise_interrupt, avr);
-  // patch_instruction(0x6bc, print_current_input, avr);
-  // patch_instruction(0x67e, test_reset, avr);
 }
 
 void setup_state_dictionary(avr_t *avr) {
@@ -62,9 +44,17 @@ void setup_patches(avr_t *avr) { printf("Using no patches.\n"); }
 
 int patch_instruction(avr_flashaddr_t vaddr, void *patch_pointer, void *arg) {
   patched_instruction *p = get_or_create_patched_instruction(vaddr);
-  DL_APPEND(p->patches, create_function_patch(patch_pointer, arg));
+
+  Patch *patch = create_function_patch(patch_pointer, arg);
+  DL_APPEND(p->patches, patch);
 
   return 0;
+}
+
+int patch_function(char *function_name, void *patch_pointer, void *arg,
+                   avr_t *avr) {
+  return patch_instruction(get_symbol_address(function_name, avr),
+                           patch_pointer, arg);
 }
 
 patched_instruction *get_or_create_patched_instruction(avr_flashaddr_t key) {
@@ -231,9 +221,45 @@ void test_override_args(void *arg) {
   // set arg 2
 }
 
+void raise_external_interrupt(uint8_t pin, avr_t *avr) {
+  avr_raise_interrupt(avr, digitalPinToInterrupt(pin, avr));
+}
+
+avr_int_vector_t *digitalPinToInterrupt(uint8_t pin, avr_t *avr) {
+  uint8_t vector_index = 0;
+  switch (pin) {
+  case 2:
+    vector_index = 6;
+    break;
+  case 3:
+    vector_index = 7;
+    break;
+  case 21:
+    vector_index = 2;
+    break;
+  case 20:
+    vector_index = 3;
+    break;
+  case 19:
+    vector_index = 4;
+    break;
+  case 18:
+    vector_index = 5;
+    break;
+  default:
+    fprintf(stderr,
+            "ERROR: Unsupported pin value %d for the digitalPinToInterrupt "
+            "user API function.\n",
+            pin);
+    exit(1);
+    break;
+  }
+  return avr->interrupts.vector[vector_index];
+}
+
 void test_raise_interrupt(void *arg) {
   avr_t *avr = (avr_t *)arg;
-  avr_raise_interrupt(avr, avr->interrupts.vector[5]);
+  avr_raise_interrupt(avr, digitalPinToInterrupt(18, avr));
   // TODO: i cant call above in a loop. how many cycles do i need to wait?
   // should i call reset?
 }
@@ -280,7 +306,7 @@ StatePatch *create_state_patch(char *symbol_name, enum StatePatchWhen when,
 
 /*
 state dictionary
-key = (cur_pc, symbol_addr, StatePatchWhen)
+key = (cur_pc, variable_addr, StatePatchWhen)
 */
 void add_state(void *arg) {
   StatePatch *state_patch = (StatePatch *)arg;
@@ -290,9 +316,9 @@ void add_state(void *arg) {
     fprintf(stderr, "ERROR: malloc failed\n");
     exit(1);
   }
-  state_key->current_pc = avr->pc;
-  state_key->symbol_addr = state_patch->symbol->addr;
-  state_key->when = state_patch->state_patch_when;
+  state_key->when_check = avr->pc;
+  state_key->variable_addr = state_patch->symbol->addr;
+  state_key->when_interesting = state_patch->state_patch_when;
 
   // This state system supports unsigned integers with a maxium bitlength of 64.
   if (state_patch->symbol->size > 8) {
@@ -390,8 +416,8 @@ void add_state(void *arg) {
     break;
   case MAX:
     if (current_value > *(uint64_t *)entry) {
-      printf("New state MAX from %lu to %lu\n", *(uint64_t *)entry,
-             current_value);
+      printf("New MAX found for state %s from %lu to %lu\n",
+             state_patch->symbol->symbol, *(uint64_t *)entry, current_value);
       *(uint64_t *)entry = current_value;
       avr->input_has_reached_new_coverage = 1;
     }
@@ -422,8 +448,10 @@ void add_state(void *arg) {
 int state_key_compare(const void *key1, const void *key2) {
   StateKey *e1 = (StateKey *)key1;
   StateKey *e2 = (StateKey *)key2;
-  return !(e1->current_pc == e2->current_pc &&
-           e1->symbol_addr == e2->symbol_addr && e1->when == e2->when);
+  // printf("CMP %d %d\n", e1->when, e2->when);
+  return !(e1->when_check == e2->when_check &&
+           e1->variable_addr == e2->variable_addr &&
+           e1->when_interesting == e2->when_interesting);
 }
 
 int uint64_t_compare(const void *key1, const void *key2) {

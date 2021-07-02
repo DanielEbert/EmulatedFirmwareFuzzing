@@ -20,6 +20,7 @@ void initialize_fuzzer(avr_t *avr, char *path_to_seeds, char *run_once_file,
 
   CC_ArrayConf array_conf;
   cc_array_conf_init(&array_conf);
+  // 1000 is initial capacity. The array can expand.
   array_conf.capacity = 1000;
   CC_Array *previous_interesting_inputs;
   if (cc_array_new_conf(&array_conf, &previous_interesting_inputs) != CC_OK) {

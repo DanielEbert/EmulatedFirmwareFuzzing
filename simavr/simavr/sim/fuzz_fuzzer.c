@@ -20,7 +20,7 @@ void initialize_fuzzer(avr_t *avr, char *path_to_seeds, char *run_once_file,
 
   CC_ArrayConf array_conf;
   cc_array_conf_init(&array_conf);
-  // 1000 is initial capacity. The array can expand.
+  // 1000 is initial capacity. The array is dynamic and can expand.
   array_conf.capacity = 1000;
   CC_Array *previous_interesting_inputs;
   if (cc_array_new_conf(&array_conf, &previous_interesting_inputs) != CC_OK) {
@@ -31,8 +31,12 @@ void initialize_fuzzer(avr_t *avr, char *path_to_seeds, char *run_once_file,
   fuzzer->previous_interesting_inputs = previous_interesting_inputs;
 
   if (run_once_file != NULL) {
+    // If the user specified the --run_once_with command line argument,
+    // run_once_file is the path to a file with an input.
+    // Add the content of this file to the seeds.
     avr->run_once = 1;
     add_seed_from_file(avr, previous_interesting_inputs, run_once_file);
+    // Set current\_input to this input. Do NOT mutate the input.
     // This is not random because there is only 1 seed -- this is what we want.
     Input *input = get_random_previous_interesting_input(
         fuzzer->previous_interesting_inputs);
@@ -40,6 +44,7 @@ void initialize_fuzzer(avr_t *avr, char *path_to_seeds, char *run_once_file,
     fuzzer->current_input->buf_len = input->buf_len;
     avr->input_has_reached_new_coverage = 0;
   } else if (path_to_seeds != NULL) {
+    // User specified seeds
     initialize_seeds(avr, previous_interesting_inputs, path_to_seeds);
     initialize_mutator(fuzzer, mutator_so_path);
     generate_input(avr, fuzzer);
@@ -57,8 +62,6 @@ void initialize_fuzzer(avr_t *avr, char *path_to_seeds, char *run_once_file,
 
 void initialize_seeds(avr_t *avr, CC_Array *previous_interesting_inputs,
                       char *path_to_seeds) {
-  // for each file in the seeds folder, add the contents of this file to the
-  // previous_interesting_inputs array
   DIR *seeds_dir = opendir(path_to_seeds);
   if (seeds_dir == NULL) {
     fprintf(stderr, "Could not open the seeds directory %s", path_to_seeds);
@@ -120,6 +123,8 @@ void initialize_mutator(Fuzzer *fuzzer, char *mutator_so_path) {
 
     fuzzer->mutator_mutate = mutator_mutate;
   } else {
+    // If the mutator from libFuzzer is not used, use a (simple) fallback
+    // solution. This mutator is not good but OK for testing.
     fuzzer->mutator_mutate = mutate;
   }
 }
@@ -190,8 +195,6 @@ void generate_input(avr_t *avr, Fuzzer *fuzzer) {
   Input *input = get_random_previous_interesting_input(
       fuzzer->previous_interesting_inputs);
 
-  // printf("%s\n", (char *)(input->buf));
-
   // Override previous input with a randomly selected interesting previous
   // input.
   memcpy(fuzzer->current_input->buf, input->buf, input->buf_len);
@@ -221,7 +224,6 @@ uint32_t mutate(Input *input, size_t max_input_length) {
 }
 
 void evaluate_input(avr_t *avr) {
-  // also hash and save to disk
   if (!avr->input_has_reached_new_coverage) {
     return;
   }

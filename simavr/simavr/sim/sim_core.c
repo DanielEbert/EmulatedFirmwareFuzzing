@@ -44,7 +44,6 @@ const char *_sreg_bit_name = "cznvshti";
 
 #define T(w) w
 
-// TODOE: this throws asan error
 //#define REG_TOUCH(a, r) (a)->trace_data->touched[(r) >> 5] |= (1 <<
 //((r)&0x1f))
 #define REG_TOUCH(a, r)
@@ -1319,7 +1318,6 @@ run_one_again:
           if (op == 1)
             x++;
           _avr_set_r16le_hl(avr, R_XL, x);
-          // TODOE do s change for R_XL? they already depend on R_X
         } break;
         case 0x9009:
         case 0x900a: { // LD -- Load Indirect from Data using Y -- 1001 000d

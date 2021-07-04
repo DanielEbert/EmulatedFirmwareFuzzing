@@ -168,12 +168,6 @@ void print_current_input(void *arg) {
   printf("\n");
 }
 
-// TODOE this doesnt work the way i expected?
-void test_patch_function(void *arg) {
-  ((avr_t *)arg)->patch_side_effects->run_return_instruction = 1;
-  printf("Hello from test_patch_function, arg: %ld\n", ((avr_t *)arg)->cycle);
-}
-
 void fuzz_reset(void *arg) {
   avr_t *avr = (avr_t *)arg;
   avr->fuzzer_stats.inputs_executed += 1;
@@ -191,34 +185,11 @@ void fuzz_reset(void *arg) {
     avr->shadow[i] = 0;
   }
 
-  if (avr->fuzzer_stats.inputs_executed % 10000 ==
-      0) { // TODOE: instead use a timer and check current time
+  if (avr->fuzzer_stats.inputs_executed % 10000 == 0) {
     send_fuzzer_stats(avr);
   }
 
   avr_reset(avr);
-}
-
-// TODOE: REMOVE
-void test_override_args(void *arg) {
-  avr_t *avr = (avr_t *)arg;
-
-  uint16_t input_length = avr->fuzzer->current_input->buf_len;
-  avr->data[22] = input_length % 256;
-  avr->data[23] = (input_length >> 8) % 256;
-
-  // for (int i = 15; i < 30; i++) {
-  //  printf("Register %d = %x\n", i, avr->data[i]);
-  //}
-  // printf("Data: %x\n", *(avr->data + avr->data[24] + avr->data[25] * 256
-  // + 2)); avr->data[24] = 0;
-  // TODO: now i need a method to convert emulator virtual address to host
-  // vaddr
-  printf("Overriding args\n");
-  write_to_sram(avr, avr->data[24] + avr->data[25] * 256,
-                avr->fuzzer->current_input->buf,
-                avr->fuzzer->current_input->buf_len);
-  // set arg 2
 }
 
 void raise_external_interrupt(uint8_t pin, avr_t *avr) {

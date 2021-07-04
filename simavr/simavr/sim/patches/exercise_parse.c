@@ -7,4 +7,4 @@ void setup_patches(avr_t *avr) {
   // patch_function(get_symbol_address("setup", avr), print_current_input, avr, avr);
   patch_function("setup", write_fuzz_input_global, avr, avr);
   patch_function("UnityConcludeTest", fuzz_reset, avr, avr);
-}
+    }

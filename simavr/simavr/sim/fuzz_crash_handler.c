@@ -8,7 +8,7 @@
 #include <unistd.h>
 
 void initialize_crash_handler(avr_t *avr) {
-  // unique crashes
+  // Setup dictionary for the unique crashes.
   CC_HashTableConf config;
   cc_hashtable_conf_init(&config);
   config.key_length = sizeof(CrashKey);

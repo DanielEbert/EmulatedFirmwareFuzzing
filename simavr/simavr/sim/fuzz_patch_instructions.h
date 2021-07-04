@@ -16,12 +16,16 @@ typedef struct Patch {
 } Patch;
 
 typedef struct patched_instruction {
-  avr_flashaddr_t vaddr; /* we'll use this field as the key */
+  avr_flashaddr_t vaddr; // we use this field as the key
   struct Patch *patches;
-  UT_hash_handle hh; /* makes this structure hashable */
+  UT_hash_handle hh; // Only requied by the hash table implementation.
+                     // This makes this structure hashable
 } patched_instruction;
 
-// maybe stacktrace?
+// Specifies when a value in a variable is interesting.
+// UNIQUE: The value has not been observed in this variable before.
+// MAX: Largest value in this variable observed so far.
+// MIN: Smallest value in this variable observed so far.
 enum StatePatchWhen { UNIQUE = 0, MIN = 1, MAX = 2 };
 
 typedef struct StatePatch {
@@ -36,9 +40,9 @@ typedef struct StateKey {
   enum StatePatchWhen when_interesting;
 } StateKey;
 
-// Global Hash Table. Implementation from https://troydhanson.github.io/uthash/
+// Hash Table. Implementation from https://troydhanson.github.io/uthash/
 // Key: virtual address
-// Value: list of function pointers
+// Value: list of function pointers and arguments for these functions
 struct patched_instruction *patched_instructions;
 
 void initialize_patch_instructions(struct avr_t *);

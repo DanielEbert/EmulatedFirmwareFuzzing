@@ -76,10 +76,16 @@ uint64_t avr_get_time_stamp(avr_t *avr) {
 
 int avr_init(avr_t *avr) {
   avr->flash = malloc(avr->flashend + 4);
+  if (avr->flash == NULL) {
+    perror("malloc failed: ");
+  }
   memset(avr->flash, 0xff, avr->flashend + 1);
   *((uint16_t *)&avr->flash[avr->flashend + 1]) = AVR_OVERFLOW_OPCODE;
   avr->codeend = avr->flashend;
   avr->data = malloc(avr->ramend + 1);
+  if (avr->data == NULL) {
+    perror("malloc failed: ");
+  }
   memset(avr->data, 0, avr->ramend + 1);
 #ifdef CONFIG_SIMAVR_TRACE
   avr->trace_data = calloc(1, sizeof(struct avr_trace_data_t));
@@ -362,6 +368,9 @@ int avr_run(avr_t *avr) {
 
 avr_t *avr_core_allocate(const avr_t *core, uint32_t coreLen) {
   uint8_t *b = malloc(coreLen);
+  if (b == NULL) {
+    perror("malloc failed: ");
+  }
   memcpy(b, core, coreLen);
   return (avr_t *)b;
 }

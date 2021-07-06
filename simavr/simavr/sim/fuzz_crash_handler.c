@@ -84,6 +84,9 @@ void crash_found(avr_t *avr, avr_flashaddr_t crashing_addr,
   // Do not (immediately) reset on uninitialized value usages
 
   CrashKey *key = malloc(sizeof(CrashKey));
+  if (key == NULL) {
+    perror("malloc failed: ");
+  }
   key->crash_id = crash_id;
   key->crashing_addr = crashing_addr;
   key->origin_addr = origin_addr;
@@ -116,13 +119,22 @@ void crash_found(avr_t *avr, avr_flashaddr_t crashing_addr,
   }
 
   Crash *crash = malloc(sizeof(Crash));
+  if (crash == NULL) {
+    perror("malloc failed: ");
+  }
   crash->crash_id = crash_id;
   crash->crashing_addr = crashing_addr;
   crash->origin_addr = origin_addr;
 
   Input *crashing_input = malloc(sizeof(Input));
+  if (crashing_input == NULL) {
+    perror("malloc failed: ");
+  }
   crashing_input->buf_len = avr->fuzzer->current_input->buf_len;
   void *buffer = malloc(avr->max_input_length);
+  if (buffer == NULL) {
+    perror("malloc failed: ");
+  }
   memcpy(buffer, avr->fuzzer->current_input->buf, avr->max_input_length);
   crashing_input->buf = buffer;
 

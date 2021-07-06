@@ -27,7 +27,7 @@ class Socket_Buffer_Queue:
     with conn:
       print(f"Connection established with {addr}")
       while True:
-        # wait for recv of header
+        # Wait for recived data
         data = conn.recv(4096)
         if len(data) == 0:
           print("Connection was closed")

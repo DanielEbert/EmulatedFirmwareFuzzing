@@ -10,10 +10,19 @@
 void initialize_fuzzer(avr_t *avr, char *path_to_seeds, char *run_once_file,
                        char *mutator_so_path) {
   Fuzzer *fuzzer = malloc(sizeof(Fuzzer));
+  if (fuzzer == NULL) {
+    perror("malloc failed: ");
+  }
   avr->fuzzer = fuzzer;
 
   Input *current_input = malloc(sizeof(Input));
+  if (current_input == NULL) {
+    perror("malloc failed: ");
+  }
   void *current_input_buffer = malloc(avr->max_input_length);
+  if (current_input_buffer == NULL) {
+    perror("malloc failed: ");
+  }
   current_input->buf = current_input_buffer;
   current_input->buf_len = 0;
   fuzzer->current_input = current_input;
@@ -52,6 +61,9 @@ void initialize_fuzzer(avr_t *avr, char *path_to_seeds, char *run_once_file,
     // No seeds specified and we are not in 'single_run' mode. Starting with
     // 'random' input. This is ok but not recommended.
     char *initial_input = malloc(sizeof(char));
+    if (initial_input == NULL) {
+      perror("malloc failed: ");
+    }
     *initial_input = 'A';
     add_previous_interesting_input(previous_interesting_inputs, initial_input,
                                    1);
@@ -142,6 +154,9 @@ void add_seed_from_file(avr_t *avr, CC_Array *previous_interesting_inputs,
   int pos = 0;
   int cur;
   char *buffer = malloc(avr->max_input_length);
+  if (buffer == NULL) {
+    perror("malloc failed: ");
+  }
   do {
     if (pos > avr->max_input_length) {
       printf("Skipping seed file %s. Reason: File content is too large. The "
@@ -163,6 +178,9 @@ void add_seed_from_file(avr_t *avr, CC_Array *previous_interesting_inputs,
 void add_previous_interesting_input(CC_Array *previous_interesting_inputs,
                                     char *buf, size_t buf_len) {
   Input *entry = malloc(sizeof(Input));
+  if (entry == NULL) {
+    perror("malloc failed: ");
+  }
   entry->buf = buf;
   entry->buf_len = buf_len;
 
@@ -232,6 +250,9 @@ void evaluate_input(avr_t *avr) {
   // Copy current input to a new buffer, buffer is saved as
   // previous_interesting_input, and the current input (buffer) can be reused
   char *buffer = malloc(avr->max_input_length);
+  if (buffer == NULL) {
+    perror("malloc failed: ");
+  }
   memcpy(buffer, avr->fuzzer->current_input->buf, avr->max_input_length);
 
   add_previous_interesting_input(avr->fuzzer->previous_interesting_inputs,

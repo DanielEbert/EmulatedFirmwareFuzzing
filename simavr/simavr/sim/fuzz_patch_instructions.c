@@ -397,6 +397,9 @@ void add_state(void *arg) {
     }
     printf("New state UNIQUE with value %lu\n", current_value);
     uint64_t *current_value_heap = malloc(sizeof(uint64_t));
+    if (current_value_heap == NULL) {
+      perror("malloc failed: ");
+    }
     *current_value_heap = current_value;
     if (cc_hashset_add(entry, current_value_heap) != CC_OK) {
       fprintf(stderr, "ERROR: Failed to add state to state hashset");

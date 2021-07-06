@@ -22,6 +22,9 @@ void initialize_coverage(avr_t *avr) {
 
 void edge_triggered(avr_t *avr, avr_flashaddr_t from, avr_flashaddr_t to) {
   Edge *edge = malloc(sizeof(Edge));
+  if (edge == NULL) {
+    perror("malloc failed: ");
+  }
   edge->from = from;
   edge->to = to;
   if (!cc_hashset_contains(avr->coverage, edge)) {

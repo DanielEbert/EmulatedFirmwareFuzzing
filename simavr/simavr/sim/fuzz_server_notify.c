@@ -33,6 +33,9 @@ void initialize_server_notify(avr_t *avr, int do_connect, char *filename) {
   }
 
   Server_Connection *server_connection = malloc(sizeof(Server_Connection));
+  if (server_connection == NULL) {
+    perror("malloc failed: ");
+  }
   server_connection->connection_established = 0;
   server_connection->s = -1;
   avr->server_connection = server_connection;

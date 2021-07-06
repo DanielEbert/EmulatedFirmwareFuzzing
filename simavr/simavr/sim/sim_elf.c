@@ -54,6 +54,9 @@ void avr_load_firmware(avr_t *avr, elf_firmware_t *firmware) {
 #if CONFIG_SIMAVR_TRACE && ELF_SYMBOLS
   int scount = firmware->flashsize >> 1;
   avr->trace_data->codeline = malloc(scount * sizeof(avr_symbol_t *));
+  if (avr->trace_data->codeline == NULL) {
+    perror("malloc failed: ");
+  }
   memset(avr->trace_data->codeline, 0, scount * sizeof(avr_symbol_t *));
 
   for (int i = 0; i < firmware->symbolcount; i++)
@@ -348,6 +351,9 @@ int elf_read_firmware(const char *file, elf_firmware_t *firmware,
           if (!strcmp(name, "__vectors"))
             firmware->flashbase = sym.st_value;
           avr_symbol_t *s = malloc(sizeof(avr_symbol_t) + strlen(name) + 1);
+          if (s == NULL) {
+            perror("malloc failed: ");
+          }
           strcpy((char *)s->symbol, name);
           s->addr = sym.st_value;
           s->size = sym.st_size;

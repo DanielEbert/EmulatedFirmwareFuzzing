@@ -13,20 +13,36 @@ class Parser(mp.Process):
     self.read_from_queue()
 
   def read_from_queue(self):
+    # Bytes that have been recived, i.e. read from the client_packages queue
     recv_buffer = b''
+    # Either 'header' or 'body', specifies what the bytes in 'recv_buffer'
+    # are part of the message header or message body. 
     waiting_for = 'header'
     header_len = 5
+    # wait_for_num_bytes specifies how many more bytes this server must
+    # recive until the current header or body (depends on waiting_for) 
+    # has completetly arrived and can be processed by the Process Messages
+    # compoennt.
     wait_for_num_bytes = header_len
+    # Type of message that is being recieved currently
     msg_ID = -1
     while True:
+      # Wait until a new data has arrived. Then, append the recived data to
+      # the recv_buffer.
       msg = self.client_packages.get()
       recv_buffer += msg
       while len(recv_buffer) >= wait_for_num_bytes:
         if waiting_for == 'header':
+          # If all the bytes of a header have arrived, we must now wait for
+          # the message body of this header. The length of this message body
+          # is in the header.
           msg_ID, wait_for_num_bytes = self.deserialize_header(recv_buffer[:5])
           recv_buffer = recv_buffer[5:]
           waiting_for = 'body'
         elif waiting_for == 'body':
+          # If all the bytes of the message body have arrived, handle_body
+          # forwards the message body to one of the functions of the 
+          # Process Messages component. Which function depends on the message ID
           self.handle_body(msg_ID, recv_buffer[:wait_for_num_bytes])
           recv_buffer = recv_buffer[wait_for_num_bytes:]
           waiting_for = 'header'
@@ -37,12 +53,13 @@ class Parser(mp.Process):
 
   def handle_body(self, msg_ID, body_raw):
     if msg_ID == 0:
+      # Message with ID 0 is Initial SUT Information
       # Path to target executable (i.e. the executable that is emulated)
       # This message is sent first on every run
       body = body_raw.decode('utf-8')
       self.process_messages.initial_message(body)
     elif msg_ID == 1:
-      # coverage event
+      # Message with ID 1 is New Coverage
       # body consists of: from addr (32 bit), to addr (32 bit),
       # input_size (32 bit), input (input_size bytes)
       from_addr = int.from_bytes(body_raw[:4], byteorder='little')
@@ -53,7 +70,7 @@ class Parser(mp.Process):
       self.process_messages.save_previous_interesting_input(inp)
       self.process_messages.update_coverage(to_addr)
     elif msg_ID == 2:
-      # crash event
+      # Message with ID 2 is New Crash
       i = 0
       crash_ID = int(body_raw[i])
       i += 1
@@ -75,7 +92,7 @@ class Parser(mp.Process):
       self.process_messages.crashing_input(
           crash_ID, crash_addr, origin_addr, crash_input, stack_frames_pc)
     elif msg_ID == 3:
-      # fuzzer statistics event
+      # Message with ID 3 is Updated Fuzzer Statistics
       i = 0
       inputs_executed = int.from_bytes(body_raw[i:i + 4], byteorder='little')
       i += 4

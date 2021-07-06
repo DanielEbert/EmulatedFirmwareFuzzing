@@ -17,8 +17,11 @@ Header has a fixed size of 5 bytes. The first byte specifies the ID of the
 message. The latter 4 bytes specify the length in bytes of the Body.
 
 ID 0: Path to the executable file that is emulated.
-ID 1: Coverage Information in form of an Edge struct.
-ID 2: Information about a crash that includes the crashing input.
+ID 1: Coverage Information in form of an Edge struct and the input that
+increased the coverage.
+ID 2: Information about a crash that includes the
+crashing input. ID 3: Fuzzer Statistics, e.g. the
+avr->fuzzer_stats.inputs_executed value.
 
 ******************************/
 

@@ -143,7 +143,6 @@ void avr_reset(avr_t *avr) {
     printf("Exiting normally.\n");
     exit(0);
   }
-  // AVR_LOG(avr, LOG_TRACE, "%s reset\n", avr->mmcu);
 
   avr->state = cpu_Running;
   for (int i = 0x20; i <= avr->ioend; i++) {

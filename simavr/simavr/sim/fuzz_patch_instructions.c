@@ -2,7 +2,6 @@
 #include "fuzz_patch_instructions.h"
 #include "fuzz_fuzzer.h"
 #include "fuzz_server_notify.h"
-#include "fuzz_util.h"
 #include "sim_avr.h"
 #include <collectc/cc_hashset.h>
 #include <stdio.h>
@@ -40,6 +39,10 @@ void setup_state_dictionary(avr_t *avr) {
   avr->SUT_state = state;
 }
 
+// If the user did not 'overwrite' the setup_patches function, call
+// the following function instead. Overwrite means the user used the
+// LD_PRELOAD environment variable to load a shared object that defines
+// a function with the name 'setup_patches'.
 void setup_patches(avr_t *avr) { printf("Using no patches.\n"); }
 
 int patch_instruction(avr_flashaddr_t vaddr, void *patch_pointer, void *arg) {
@@ -63,7 +66,7 @@ patched_instruction *get_or_create_patched_instruction(avr_flashaddr_t key) {
 
   // Create empty list as value at :key: if no value exists yet
   if (entry == NULL) {
-    // Set empty list as value for key target_vaddr in vaddr_hooks_table
+    // Set empty list as value
     Patch *patch = NULL;
     entry = malloc(sizeof(patched_instruction));
     if (entry == NULL) {
@@ -133,8 +136,11 @@ uint32_t get_symbol_address(char *symbol_name, avr_t *avr) {
 }
 
 void write_to_ram(uint32_t dst, void *src, size_t num_bytes, avr_t *avr) {
+  // avr-> data is the start address of the memory block that stores the
+  // virtual RAM of the emulated SUT
   memcpy(avr->data + dst, src, num_bytes);
 
+  // If we overwrite RAM, we must set the shadow bits to 1 (i.e. defined).
   set_shadow_map(dst, num_bytes, 1, avr);
 }
 
@@ -157,8 +163,6 @@ void set_shadow_map(avr_flashaddr_t start, size_t size, uint8_t value,
     avr->shadow[i] = 1;
   }
 }
-
-void noop(avr_t *avr) {}
 
 void print_current_input(void *arg) {
   avr_t *avr = (avr_t *)arg;
@@ -231,8 +235,6 @@ avr_int_vector_t *digitalPinToInterrupt(uint8_t pin, avr_t *avr) {
 void test_raise_interrupt(void *arg) {
   avr_t *avr = (avr_t *)arg;
   avr_raise_interrupt(avr, digitalPinToInterrupt(18, avr));
-  // TODO: i cant call above in a loop. how many cycles do i need to wait?
-  // should i call reset?
 }
 
 void write_fuzz_input_global(void *arg) {
@@ -275,10 +277,6 @@ StatePatch *create_state_patch(char *symbol_name, enum StatePatchWhen when,
   return state_patch;
 }
 
-/*
-state dictionary
-key = (cur_pc, variable_addr, StatePatchWhen)
-*/
 void add_state(void *arg) {
   StatePatch *state_patch = (StatePatch *)arg;
   avr_t *avr = state_patch->avr;
@@ -419,7 +417,6 @@ void add_state(void *arg) {
 int state_key_compare(const void *key1, const void *key2) {
   StateKey *e1 = (StateKey *)key1;
   StateKey *e2 = (StateKey *)key2;
-  // printf("CMP %d %d\n", e1->when, e2->when);
   return !(e1->when_check == e2->when_check &&
            e1->variable_addr == e2->variable_addr &&
            e1->when_interesting == e2->when_interesting);

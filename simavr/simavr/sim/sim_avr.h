@@ -402,22 +402,30 @@ typedef struct avr_t {
   // reached edge coverage dictionary. key is struct Edge.
   // if key-value pair exists: Edge reached
   Server_Connection *server_connection;
+
+  // Stores triggered <source, destionation> address pairs or jumps and calls.
   CC_HashSet *coverage;
+
+  // 1 if the input increased branch coverage.
   int input_has_reached_new_coverage;
 
   Patch_Side_Effects *patch_side_effects;
 
+  // Stores ELF symbols.
   CC_HashTable *symbols;
 
   // Key is vaddr where bug was first noticed. Value is struct Crash
   CC_HashTable *unique_crashes;
 
+  // Stores previous intereting values
   CC_HashTable *SUT_state;
 
   // For Sanitizers
   int disable_buffer_overflow_sanitizer;
   avr_flashaddr_t stackframe_min_sp;
+  // shadow map for UUM sanitizer
   uint8_t *shadow;
+  // propagation map for UUM sanitizer
   avr_flashaddr_t *shadow_propagation;
 } avr_t;
 

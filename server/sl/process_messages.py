@@ -36,7 +36,7 @@ class Fuzzer_Stats:
     self.bad_jump_count = 0
     self.reading_past_end_of_flash_count = 0
     self.stack_buffer_overfow_count = 0
-    # Epoch time when the last 'Updated Fuzzer Statistics' message was recieved
+    # Epoch time when the last 'Updated Fuzzer Statistics' message was received 
     self.stats_update_time = None
     # average total number of inputs executed in the last ~30 seconds
     self.inputs_executed_per_second = 0

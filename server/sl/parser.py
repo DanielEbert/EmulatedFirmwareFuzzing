@@ -24,7 +24,7 @@ class Parser(mp.Process):
     # has completetly arrived and can be processed by the Process Messages
     # compoennt.
     wait_for_num_bytes = header_len
-    # Type of message that is being recieved currently
+    # Type of message that is being received currently
     msg_ID = -1
     while True:
       # Wait until a new data has arrived. Then, append the recived data to

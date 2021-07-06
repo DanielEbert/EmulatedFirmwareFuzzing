@@ -26,9 +26,6 @@ tests = [
     'uninitialized6', b'uninitialized memory found', default_flags
   ),
   (
-    'uninitialized4', b'uninitialized memory found', default_flags
-  ),
-  (
     'uninitialized2', b'uninitialized memory found', default_flags
   ),
   (

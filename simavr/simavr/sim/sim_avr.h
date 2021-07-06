@@ -160,18 +160,25 @@ typedef void (*avr_run_t)(struct avr_t *avr);
 #define AVR_FUSE_HIGH 1
 #define AVR_FUSE_EXT 2
 
+// For documentation, see the file fuzz_patch_instructions.h
 typedef struct Patch_Side_Effects {
   int run_return_instruction;
 } Patch_Side_Effects;
 
 typedef struct Input {
-  void *buf;
-  size_t buf_len;
+  void *buf; // Points to buffer that has a size of at least 'buf_len' bytes and
+             // the input is stored in this buffer.
+  size_t buf_len; // Length in bytes of this input.
 } Input;
 
 typedef struct Fuzzer {
+  // Input that the emulated SUT is currently processing.
   Input *current_input;
+  // List of inputs that the mutator can use. These inputs are the seeds (if
+  // the user specified seeds) and inputs that increased the code coverage.
   CC_Array *previous_interesting_inputs;
+  // points to the function that mutates an Input. The return value is the size
+  // of the mutated input.
   uint32_t (*mutator_mutate)(Input *, size_t);
 } Fuzzer;
 
@@ -373,7 +380,7 @@ typedef struct avr_t {
     uint32_t len;
   } io_console_buffer;
 
-  // The following is for fuzzing purposes
+  // The following members were added and these are for fuzzing purposes
 
   // The fuzzer_stats only include information that is not sent to the server
   // already. For example, we sent the information about unique crashes to the

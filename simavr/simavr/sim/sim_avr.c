@@ -111,7 +111,7 @@ int avr_init(avr_t *avr) {
   avr_reset(avr);
   avr_regbit_set(avr,
                  avr->reset_flags.porf); // by  default set to power-on reset
-  // Reset fuzz_stats
+  // Default values for fuzz_stats variables
   avr->fuzzer_stats.inputs_executed = 0;
   avr->fuzzer_stats.total_crashes = 0;
   avr->fuzzer_stats.max_depth = 0;
@@ -182,12 +182,6 @@ void avr_reset(avr_t *avr) {
 void avr_sadly_crashed(avr_t *avr, uint8_t signal) {
   AVR_LOG(avr, LOG_ERROR, "%s\n", __FUNCTION__);
   avr->state = cpu_Stopped;
-  // if (avr->gdb_port) {
-  //  // enable gdb server, and wait
-  //  if (!avr->gdb)
-  //    avr_gdb_init(avr);
-  //}
-  // if (!avr->gdb)
   avr->state = cpu_Crashed;
 }
 
